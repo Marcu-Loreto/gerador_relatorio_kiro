@@ -1,0 +1,97 @@
+# EasyPanel Configuration
+# This file helps EasyPanel understand how to deploy your application
+
+name: gerador-relatorio-kiro
+description: Sistema profissional de análise documental e geração de relatórios com IA
+
+# Build configuration
+build:
+  dockerfile: Dockerfile
+  context: .
+
+# Service configuration
+services:
+  app:
+    # Port mapping
+    ports:
+      - "80:80"
+
+    # Environment variables (set these in EasyPanel UI)
+    env:
+      # Required
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # Optional - LLM Configuration
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - MODEL_SELECTION_STRATEGY=${MODEL_SELECTION_STRATEGY:-auto}
+      - SIMPLE_MODEL=${SIMPLE_MODEL:-minimax-m2.5}
+      - COMPLEX_MODEL=${COMPLEX_MODEL:-gpt-4o}
+
+      # Application
+      - APP_NAME=${APP_NAME:-gerador_relatorio_kiro}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Security
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-1440}
+
+      # Database (use EasyPanel's PostgreSQL addon)
+      - DATABASE_URL=${DATABASE_URL}
+
+      # Redis (use EasyPanel's Redis addon)
+      - REDIS_URL=${REDIS_URL}
+
+      # Storage
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - STORAGE_LOCAL_PATH=${STORAGE_LOCAL_PATH:-/app/uploads}
+
+      # File Upload
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-50}
+
+      # Features
+      - ENABLE_SECURITY_GUARD=${ENABLE_SECURITY_GUARD:-true}
+      - ENABLE_PROMPT_INJECTION_DETECTION=${ENABLE_PROMPT_INJECTION_DETECTION:-true}
+      - MAX_REVISION_ATTEMPTS=${MAX_REVISION_ATTEMPTS:-3}
+
+    # Volumes for persistent storage
+    volumes:
+      - uploads:/app/uploads
+      - exports:/app/exports
+      - logs:/app/logs
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits (adjust based on your plan)
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    # Restart policy
+    restart: unless-stopped
+
+# Volumes
+volumes:
+  uploads:
+    driver: local
+  exports:
+    driver: local
+  logs:
+    driver: local
+
+# Recommended addons for EasyPanel
+# - PostgreSQL (for production database)
+# - Redis (for caching and sessions)
+# - Backup (for data protection)
