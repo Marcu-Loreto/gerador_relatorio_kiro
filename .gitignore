@@ -58,3 +58,7 @@ logs/
 
 # OS
 Thumbs.db
+reports/*.db
+reports/**/*.md
+uploads/
+exports/

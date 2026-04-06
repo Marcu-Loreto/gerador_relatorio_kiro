@@ -19,9 +19,13 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("application_starting", version=settings.app_version)
-    # Create upload/export dirs
     os.makedirs(settings.storage_local_path, exist_ok=True)
     os.makedirs("exports", exist_ok=True)
+    os.makedirs("reports", exist_ok=True)
+    # Initialize SQLite database
+    from src.infrastructure.database import init_db
+    init_db()
+    logger.info("database_initialized", path="reports/relatorios.db")
     yield
     logger.info("application_shutting_down")
 

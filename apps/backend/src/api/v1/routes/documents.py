@@ -88,6 +88,10 @@ async def upload_document(file: UploadFile = File(...)):
     }
     documents_store[document_id] = doc_data
 
+    # Persist to SQLite immediately
+    from src.infrastructure.database import save_document
+    save_document(doc_data)
+
     logger.info("document_uploaded", document_id=document_id, filename=safe_filename, size=file_size)
 
     return DocumentResponse(
