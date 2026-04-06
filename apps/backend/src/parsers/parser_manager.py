@@ -3,6 +3,7 @@ from typing import List
 
 from src.core.logging import get_logger
 from src.parsers.base_parser import BaseParser, ParseResult
+from src.parsers.csv_parser import CSVParser
 from src.parsers.docx_parser import DOCXParser
 from src.parsers.pdf_parser import PDFParser
 from src.parsers.text_parser import TextParser
@@ -18,8 +19,8 @@ class ParserManager:
         self.parsers: List[BaseParser] = [
             PDFParser(),
             DOCXParser(),
+            CSVParser(),
             TextParser(),
-            # Add more parsers as needed
         ]
     
     def parse(self, file_path: str) -> ParseResult:
