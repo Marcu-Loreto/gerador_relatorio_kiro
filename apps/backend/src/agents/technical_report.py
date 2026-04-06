@@ -134,7 +134,7 @@ class TechnicalReportAgent:
                 return ""
 
             df["score"]   = pd.to_numeric(df["score"],   errors="coerce").fillna(0.0)
-            df["latency"] = pd.to_numeric(df.get("latency", 0), errors="coerce").fillna(0)
+            df["latency"] = pd.to_numeric(df["latency"], errors="coerce").fillna(0) if "latency" in df.columns else pd.Series([0]*len(df))
 
             total   = len(df)
             n_pass  = int(df["pass"].sum()) if has_pass else 0
@@ -170,7 +170,7 @@ class TechnicalReportAgent:
                 plugin_block = "\n".join(linhas)
 
             # Casos de falha — 1 por categoria, traduzidos
-            falhas_df = df[~df["pass"]].copy() if has_pass else df[df["score"] < 0.5].copy()
+            falhas_df = df[~df["pass"]].copy() if has_pass else df[df["score"] < 0.2].copy()
             sample = (falhas_df.groupby(plugin_col).first().reset_index().head(30)
                       if plugin_col else falhas_df.head(30))
 
@@ -249,7 +249,6 @@ class TechnicalReportAgent:
                 f"- Tokens médios: {tok_med:.0f}\n"
                 f"- Categorias testadas: {df[plugin_col].nunique() if plugin_col else 'N/D'}\n\n"
                 f"### Distribuição de Falhas por Tipo\n{dist_str}\n\n"
-                f"### Resultados por Categoria\n{plugin_block}\n\n"
                 f"### Casos de Falha Representativos (1 por categoria)\n"
                 + "\n\n".join(casos) +
                 "\n\n### Critério de Aceitação\n"
@@ -277,7 +276,7 @@ class TechnicalReportAgent:
                 return report
 
             df["score"]   = pd.to_numeric(df["score"],   errors="coerce").fillna(0.0)
-            df["latency"] = pd.to_numeric(df.get("latency", 0), errors="coerce").fillna(0)
+            df["latency"] = pd.to_numeric(df["latency"], errors="coerce").fillna(0) if "latency" in df.columns else pd.Series([0]*len(df))
 
             plugin_col = next((c for c in ["plugin", "Tema da pergunta"] if c in df.columns), None)
             q_col      = next((c for c in ["adversarial_prompt", "question", "Pergunta realizada"]
@@ -286,9 +285,15 @@ class TechnicalReportAgent:
                                if c in df.columns), None)
             reason_col = "reason" if "reason" in df.columns else None
 
-            falhas_df = df[~df["pass"]].copy() if has_pass else df[df["score"] < 0.5].copy()
+            falhas_df = df[~df["pass"]].copy() if has_pass else df[df["score"] < 0.2].copy()
             sample_a  = (falhas_df.groupby(plugin_col).first().reset_index()
                          if plugin_col else falhas_df.head(30))
+
+            # Para status na lista completa, usar pass se disponível, senão score < 0.2
+            def _passou(row):
+                if has_pass:
+                    return bool(row["pass"])
+                return float(row["score"]) >= 0.2
 
             # Traduzir reasons do Anexo A (~26 itens)
             translated: dict[int, str] = {}
@@ -309,40 +314,45 @@ class TechnicalReportAgent:
                 except Exception as te:
                     logger.warning("annex_translation_failed", error=str(te))
 
-            # ── Anexo A — Evidências por categoria (resumido) ─────────────
+            # ── Anexo A — Evidências por categoria (tabela simples) ──────
             linhas_a = [
-                f"\n## Anexo A — Evidências por Categoria de Falha\n",
-                f"> {len(sample_a)} categorias com falha | Um caso representativo por categoria\n",
+                f"\n## Anexo A — Recomendações de Melhoria\n",
+                f"> Baseado nas {len(sample_a)} categorias com falha identificadas\n",
             ]
+            # Recomendações por categoria
             for idx, (_, row) in enumerate(sample_a.iterrows()):
                 cat    = str(row[plugin_col]) if plugin_col else f"Caso {idx+1}"
-                prompt = str(row[q_col]).strip()[:300] if q_col else "N/D"
-                resp   = str(row[r_col]).strip()[:300] if r_col else "N/D"
-                just   = translated.get(idx) or (str(row[reason_col])[:300] if reason_col else "N/D")
-                score  = f"{row['score']:.2f}"
-                lat    = f"{row['latency']/1000:.1f}s"
+                just   = translated.get(idx) or (str(row[reason_col])[:200] if reason_col else "N/D")
+                just   = just.replace("\n", " ")[:200]
                 n_f    = int(falhas_df[falhas_df[plugin_col] == row[plugin_col]].shape[0]) if plugin_col else 1
-                linhas_a.append(
-                    f"\n#### {idx+1}. `{cat}` — {n_f} falha(s) | Score: {score} | Latência: {lat}\n\n"
-                    f"**Prompt:** {prompt}\n\n"
-                    f"**Resposta recebida:** {resp}\n\n"
-                    f"**Justificativa (pt-BR):** {just}\n\n---"
-                )
+                linhas_a.append(f"- **{cat}** ({n_f} falha(s)): {just}")
 
-            # ── Anexo B — Lista completa (sem tradução) ───────────────────
+            linhas_a.append(f"\n## Anexo B — Evidências Críticas por Categoria\n")
+            linhas_a.append(f"> Um caso representativo por categoria com falha\n")
+            linhas_a.append("| Categoria | Pergunta | Resposta | Resultado |")
+            linhas_a.append("|-----------|----------|----------|-----------|")
+            for idx, (_, row) in enumerate(sample_a.iterrows()):
+                cat      = str(row[plugin_col]) if plugin_col else f"Caso {idx+1}"
+                pergunta = str(row[q_col]).strip()[:100].replace("|","\\|").replace("\n"," ") if q_col else "N/D"
+                resp     = str(row[r_col]).strip()[:100].replace("|","\\|").replace("\n"," ") if r_col else "N/D"
+                linhas_a.append(f"| {cat} | {pergunta} | {resp} | ❌ Falhou |")
+
+            # ── Anexo C — Lista completa: #, Tema, Pergunta, Resposta, Status, Tempo ──
+            tema_col = next((c for c in ["Tema da pergunta", "plugin"] if c in df.columns), plugin_col)
+
             linhas_b = [
-                f"\n## Anexo B — Lista Completa dos {len(df)} Testes\n",
-                "> ✅ = Aprovado | ❌ = Falhou\n",
-                "| # | Categoria | Prompt (resumo) | Status | Score | Latência |",
-                "|---|-----------|-----------------|--------|-------|----------|",
+                f"\n## Anexo C — Lista Completa dos {len(df)} Testes e Resultados\n",
+                "> ✅ = Passou | ❌ = Falhou\n",
+                "| # | Tema | Pergunta | Resposta | Status | Tempo (s) |",
+                "|---|------|----------|----------|--------|-----------|",
             ]
             for i, row in df.iterrows():
-                cat    = str(row[plugin_col])[:40] if plugin_col else f"Caso {i+1}"
-                prompt = str(row[q_col])[:80].replace("|", "\\|").replace("\n", " ") if q_col else "N/D"
-                status = "✅" if row["pass"] else "❌"
-                score  = f"{row['score']:.2f}"
-                lat    = f"{row['latency']/1000:.1f}s"
-                linhas_b.append(f"| {i+1} | {cat} | {prompt} | {status} | {score} | {lat} |")
+                tema     = str(row[tema_col])[:40].replace("|","\\|").replace("\n"," ") if tema_col else "N/D"
+                pergunta = str(row[q_col])[:100].replace("|","\\|").replace("\n"," ") if q_col else "N/D"
+                resp     = str(row[r_col])[:100].replace("|","\\|").replace("\n"," ") if r_col else "N/D"
+                status   = "✅ Passou" if _passou(row) else "❌ Falhou"
+                lat      = f"{row['latency']/1000:.1f}"
+                linhas_b.append(f"| {i+1} | {tema} | {pergunta} | {resp} | {status} | {lat} |")
 
             anexos = "\n".join(linhas_a) + "\n\n" + "\n".join(linhas_b)
 
