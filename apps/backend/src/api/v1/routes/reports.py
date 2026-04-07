@@ -81,7 +81,7 @@ def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
 async def generate_report(request: GenerateReportRequest):
     """Generate a report from an analyzed document and persist it."""
     from src.api.v1.routes.documents import documents_store
-    from src.agents.technical_report import TechnicalReportAgent
+    from src.agents.report_router import get_report_agent
     from src.graphs.state import AppState, AnalysisStatus
     from src.infrastructure.database import save_document
 
@@ -122,7 +122,8 @@ async def generate_report(request: GenerateReportRequest):
     }
 
     try:
-        agent = TechnicalReportAgent()
+        from src.agents.report_router import get_report_agent
+        agent = get_report_agent(request.report_type.value)
         state = agent.generate(state)
     except Exception as e:
         logger.error("report_generation_failed", error=str(e))
