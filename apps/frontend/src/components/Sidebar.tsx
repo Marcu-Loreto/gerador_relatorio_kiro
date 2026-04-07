@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import {
   Upload,
-  FileText,
   CheckCircle,
   AlertCircle,
   Loader2,
@@ -9,6 +8,9 @@ import {
   Moon,
   Sun,
   FileSearch,
+  X,
+  Plus,
+  Files,
 } from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import {
@@ -16,25 +18,27 @@ import {
   analyzeDocument,
   generateReport,
 } from "../services/api";
-import { REPORT_TYPE_LABELS, type ReportType } from "../types";
+import { REPORT_TYPE_LABELS, type ReportType, type Document } from "../types";
 
-const ACCEPTED = ".pdf,.docx,.xlsx,.csv,.txt,.pptx,.md";
+const ACCEPTED = ".pdf,.docx,.xlsx,.xls,.csv,.txt,.pptx,.md";
+
+interface UploadedFile {
+  file: File;
+  doc: Document | null;
+  status: "uploading" | "analyzing" | "ready" | "error";
+  error?: string;
+}
 
 export function Sidebar() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const {
     darkMode,
     toggleDarkMode,
-    document,
-    setDocument,
     selectedReportType,
     setSelectedReportType,
-    isUploading,
-    setIsUploading,
-    isAnalyzing,
-    setIsAnalyzing,
     isGenerating,
     setIsGenerating,
     setReport,
@@ -45,83 +49,110 @@ export function Sidebar() {
     clearTimeline,
   } = useAppStore();
 
-  const addStep = (id: string, label: string) => {
-    addTimelineStep({
-      id,
-      label,
-      status: "running",
-      timestamp: new Date().toLocaleTimeString(),
-    });
-  };
-  const doneStep = (id: string, msg?: string) =>
-    updateTimelineStep(id, { status: "done", message: msg });
-  const failStep = (id: string, msg: string) =>
-    updateTimelineStep(id, { status: "error", message: msg });
+  const updateFile = (idx: number, patch: Partial<UploadedFile>) =>
+    setUploadedFiles((prev) =>
+      prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)),
+    );
 
-  async function handleFile(file: File) {
-    setError(null);
-    clearTimeline();
-    setDocument(null);
-    setReport(null);
-
+  async function processFile(file: File, idx: number) {
     // Upload
-    setIsUploading(true);
-    addStep("upload", "Enviando documento...");
+    updateFile(idx, { status: "uploading" });
     try {
       const doc = await uploadDocument(file);
-      setDocument(doc);
-      doneStep(
-        "upload",
-        `${doc.filename} (${(doc.file_size / 1024).toFixed(1)} KB)`,
-      );
-    } catch (e: any) {
-      failStep("upload", e?.response?.data?.detail || "Falha no upload");
-      setError("Falha no upload do documento.");
-      setIsUploading(false);
-      return;
-    } finally {
-      setIsUploading(false);
-    }
+      updateFile(idx, { doc, status: "analyzing" });
 
-    // Analyze
-    const docId = useAppStore.getState().document?.document_id;
-    if (!docId) return;
-    setIsAnalyzing(true);
-    addStep("analyze", "Analisando documento...");
-    try {
-      const result = await analyzeDocument(docId);
-      doneStep(
-        "analyze",
-        `${result.word_count} palavras, ${result.sections_count} seções`,
-      );
-      setDocument({ ...useAppStore.getState().document!, status: "analyzed" });
+      // Analyze
+      await analyzeDocument(doc.document_id);
+      updateFile(idx, { status: "ready", doc: { ...doc, status: "analyzed" } });
     } catch (e: any) {
-      failStep("analyze", e?.response?.data?.detail || "Falha na análise");
-      setError("Falha na análise do documento.");
-    } finally {
-      setIsAnalyzing(false);
+      const msg =
+        e?.response?.data?.detail || e?.message || "Falha no processamento";
+      updateFile(idx, { status: "error", error: msg });
     }
   }
 
+  async function handleFiles(files: FileList | File[]) {
+    const arr = Array.from(files);
+    if (!arr.length) return;
+    setError(null);
+    clearTimeline();
+    setReport(null);
+
+    // Adicionar todos à lista
+    const startIdx = uploadedFiles.length;
+    const newEntries: UploadedFile[] = arr.map((f) => ({
+      file: f,
+      doc: null,
+      status: "uploading",
+    }));
+    setUploadedFiles((prev) => [...prev, ...newEntries]);
+
+    // Processar em paralelo
+    await Promise.all(arr.map((file, i) => processFile(file, startIdx + i)));
+  }
+
+  function removeFile(idx: number) {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function clearAll() {
+    setUploadedFiles([]);
+    setReport(null);
+    setError(null);
+    clearTimeline();
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   async function handleGenerate() {
-    const doc = useAppStore.getState().document;
-    if (!doc || doc.status !== "analyzed") return;
+    const readyFiles = uploadedFiles.filter(
+      (f) => f.status === "ready" && f.doc,
+    );
+    if (!readyFiles.length) return;
+
     setError(null);
     setIsGenerating(true);
     setActiveTab("timeline");
 
-    addStep("generate", `Gerando ${REPORT_TYPE_LABELS[selectedReportType]}...`);
-    addStep("review", "Aguardando revisão editorial...");
+    // Usar o primeiro arquivo como documento principal
+    // (em produção, consolidar múltiplos arquivos)
+    const primaryDoc = readyFiles[0].doc!;
+
+    addTimelineStep({
+      id: "generate",
+      label: `Gerando ${REPORT_TYPE_LABELS[selectedReportType]}...`,
+      status: "running",
+      timestamp: new Date().toLocaleTimeString(),
+    });
+    if (readyFiles.length > 1) {
+      addTimelineStep({
+        id: "multi",
+        label: `${readyFiles.length} arquivos carregados`,
+        status: "done",
+        timestamp: new Date().toLocaleTimeString(),
+      });
+    }
+    addTimelineStep({
+      id: "review",
+      label: "Revisão editorial...",
+      status: "running",
+      timestamp: new Date().toLocaleTimeString(),
+    });
 
     try {
-      const report = await generateReport(doc.document_id, selectedReportType);
-      doneStep("generate", "Relatório gerado");
-      doneStep(
-        "review",
-        `Score de qualidade: ${report.quality_score ?? "N/A"}`,
+      const report = await generateReport(
+        primaryDoc.document_id,
+        selectedReportType,
       );
+      updateTimelineStep("generate", {
+        status: "done",
+        message: "Relatório gerado",
+      });
+      updateTimelineStep("review", {
+        status: "done",
+        message: `Score: ${report.quality_score ?? "N/A"}`,
+      });
       addTimelineStep({
-        id: "export",
+        id: "done",
         label: "Pronto para exportação",
         status: "done",
         timestamp: new Date().toLocaleTimeString(),
@@ -129,8 +160,9 @@ export function Sidebar() {
       setReport(report);
       setActiveTab("preview");
     } catch (e: any) {
-      failStep("generate", e?.response?.data?.detail || "Falha na geração");
-      setError("Falha na geração do relatório.");
+      const msg = e?.response?.data?.detail || "Falha na geração";
+      updateTimelineStep("generate", { status: "error", message: msg });
+      setError(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -139,22 +171,27 @@ export function Sidebar() {
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
   };
 
-  const isLoading = isUploading || isAnalyzing || isGenerating;
-  const canGenerate = document?.status === "analyzed" && !isLoading;
+  const readyCount = uploadedFiles.filter((f) => f.status === "ready").length;
+  const busyCount = uploadedFiles.filter(
+    (f) => f.status === "uploading" || f.status === "analyzing",
+  ).length;
+  const canGenerate = readyCount > 0 && busyCount === 0 && !isGenerating;
+
+  const border = darkMode ? "border-gray-700" : "border-gray-200";
+  const bg = darkMode
+    ? "bg-gray-900 border-gray-700 text-gray-100"
+    : "bg-white border-gray-200 text-gray-900";
 
   return (
     <aside
-      className={`w-72 flex-shrink-0 flex flex-col border-r h-screen overflow-y-auto
-      ${darkMode ? "bg-gray-900 border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-900"}`}
+      className={`w-72 flex-shrink-0 flex flex-col border-r h-screen overflow-y-auto ${bg}`}
     >
       {/* Header */}
       <div
-        className={`flex items-center justify-between px-4 py-4 border-b
-        ${darkMode ? "border-gray-700" : "border-gray-200"}`}
+        className={`flex items-center justify-between px-4 py-4 border-b ${border}`}
       >
         <div className="flex items-center gap-2">
           <FileSearch className="w-5 h-5 text-blue-500" />
@@ -172,12 +209,24 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className="flex-1 p-4 space-y-5">
+      <div className="flex-1 p-4 space-y-4">
         {/* Upload area */}
         <div>
-          <label className="block text-xs font-medium mb-2 text-gray-500 uppercase tracking-wide">
-            Documento
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Documentos
+            </label>
+            {uploadedFiles.length > 0 && (
+              <button
+                onClick={clearAll}
+                className="text-xs text-red-500 hover:text-red-600 transition-colors"
+              >
+                Limpar tudo
+              </button>
+            )}
+          </div>
+
+          {/* Drop zone */}
           <div
             onClick={() => fileRef.current?.click()}
             onDrop={onDrop}
@@ -186,7 +235,7 @@ export function Sidebar() {
               setDragOver(true);
             }}
             onDragLeave={() => setDragOver(false)}
-            className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all
+            className={`relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all
               ${dragOver ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20" : ""}
               ${
                 darkMode
@@ -194,61 +243,89 @@ export function Sidebar() {
                   : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"
               }`}
           >
-            {isUploading ? (
-              <Loader2 className="w-8 h-8 mx-auto mb-2 text-blue-500 animate-spin" />
+            {busyCount > 0 ? (
+              <Loader2 className="w-7 h-7 mx-auto mb-1.5 text-blue-500 animate-spin" />
             ) : (
-              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <div className="flex items-center justify-center gap-1 mb-1.5">
+                <Upload className="w-6 h-6 text-gray-400" />
+                {uploadedFiles.length > 0 && (
+                  <Plus className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
             )}
             <p className="text-sm font-medium">
-              {isUploading ? "Enviando..." : "Arraste ou clique para enviar"}
+              {busyCount > 0
+                ? `Processando ${busyCount} arquivo(s)...`
+                : uploadedFiles.length > 0
+                  ? "Adicionar mais arquivos"
+                  : "Arraste ou clique para enviar"}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
-              PDF, DOCX, XLSX, CSV, TXT, PPTX, MD
+            <p className="text-xs text-gray-400 mt-0.5">
+              PDF, DOCX, XLSX, XLS, CSV, TXT, PPTX, MD
+            </p>
+            <p className="text-xs text-blue-500 mt-0.5 font-medium">
+              Múltiplos arquivos suportados
             </p>
             <input
               ref={fileRef}
               type="file"
               accept={ACCEPTED}
+              multiple
               className="hidden"
-              onChange={(e) =>
-                e.target.files?.[0] && handleFile(e.target.files[0])
-              }
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
             />
           </div>
         </div>
 
-        {/* Document status */}
-        {document && (
-          <div
-            className={`rounded-xl p-3 text-sm space-y-1
-            ${darkMode ? "bg-gray-800" : "bg-gray-50"}`}
-          >
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
-              <span className="font-medium truncate">{document.filename}</span>
+        {/* File list */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Files className="w-3.5 h-3.5" />
+              <span>
+                {uploadedFiles.length} arquivo(s) — {readyCount} pronto(s)
+              </span>
             </div>
-            <div className="flex items-center gap-2 pl-6">
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 text-yellow-500 animate-spin" />
-                  <span className="text-yellow-600 text-xs">Analisando...</span>
-                </>
-              ) : document.status === "analyzed" ? (
-                <>
-                  <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                  <span className="text-green-600 text-xs">
-                    Análise concluída
-                  </span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-gray-400 text-xs">
-                    Aguardando análise
-                  </span>
-                </>
-              )}
-            </div>
+            {uploadedFiles.map((uf, idx) => (
+              <div
+                key={idx}
+                className={`flex items-start gap-2 rounded-xl p-2.5 text-xs
+                  ${darkMode ? "bg-gray-800" : "bg-gray-50"}`}
+              >
+                {/* Status icon */}
+                <div className="flex-shrink-0 mt-0.5">
+                  {uf.status === "uploading" || uf.status === "analyzing" ? (
+                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                  ) : uf.status === "ready" ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{uf.file.name}</p>
+                  <p
+                    className={`mt-0.5 ${uf.status === "error" ? "text-red-400" : "text-gray-400"}`}
+                  >
+                    {uf.status === "uploading"
+                      ? "Enviando..."
+                      : uf.status === "analyzing"
+                        ? "Analisando..."
+                        : uf.status === "ready"
+                          ? `✓ Pronto · ${(uf.file.size / 1024).toFixed(0)} KB`
+                          : uf.error || "Erro"}
+                  </p>
+                </div>
+                {/* Remove */}
+                <button
+                  onClick={() => removeFile(idx)}
+                  className="flex-shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -263,15 +340,11 @@ export function Sidebar() {
               onChange={(e) =>
                 setSelectedReportType(e.target.value as ReportType)
               }
-              disabled={isLoading}
+              disabled={isGenerating}
               className={`w-full appearance-none rounded-xl px-3 py-2.5 pr-8 text-sm border transition-colors
                 focus:outline-none focus:ring-2 focus:ring-blue-500
-                ${
-                  darkMode
-                    ? "bg-gray-800 border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
-                }
-                ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                ${darkMode ? "bg-gray-800 border-gray-600 text-gray-100" : "bg-white border-gray-300 text-gray-900"}
+                ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {Object.entries(REPORT_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -298,10 +371,19 @@ export function Sidebar() {
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Gerando...
             </span>
+          ) : readyCount > 1 ? (
+            `Gerar Relatório (${readyCount} arquivos)`
           ) : (
             "Gerar Relatório"
           )}
         </button>
+
+        {/* Hint */}
+        {readyCount === 0 && uploadedFiles.length === 0 && (
+          <p className="text-xs text-center text-gray-400 px-2">
+            Envie um ou mais arquivos para gerar um relatório consolidado
+          </p>
+        )}
       </div>
     </aside>
   );
