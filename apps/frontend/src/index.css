@@ -2,22 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  html {
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    margin: 0;
+  }
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  * {
+    box-sizing: border-box;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
+/* Prose dark mode overrides */
+.dark .prose {
+  --tw-prose-body: theme("colors.gray.300");
+  --tw-prose-headings: theme("colors.gray.100");
+  --tw-prose-links: theme("colors.blue.400");
+  --tw-prose-bold: theme("colors.gray.100");
+  --tw-prose-counters: theme("colors.gray.400");
+  --tw-prose-bullets: theme("colors.gray.400");
+  --tw-prose-hr: theme("colors.gray.700");
+  --tw-prose-quotes: theme("colors.gray.300");
+  --tw-prose-quote-borders: theme("colors.gray.600");
+  --tw-prose-captions: theme("colors.gray.400");
+  --tw-prose-code: theme("colors.gray.200");
+  --tw-prose-pre-code: theme("colors.gray.200");
+  --tw-prose-pre-bg: theme("colors.gray.800");
+  --tw-prose-th-borders: theme("colors.gray.600");
+  --tw-prose-td-borders: theme("colors.gray.700");
 }
