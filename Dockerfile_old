@@ -11,8 +11,8 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY apps/frontend/package*.json ./
 
-# Install dependencies INCLUDING devDependencies needed for build
-RUN npm ci
+# Install dependencies
+RUN npm ci --only=production
 
 # Copy frontend source
 COPY apps/frontend/ ./
@@ -49,8 +49,7 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000 \
-    HOST=0.0.0.0 \
-    PATH=/root/.local/bin:$PATH
+    HOST=0.0.0.0
 
 WORKDIR /app
 
@@ -88,12 +87,15 @@ COPY infra/easypanel/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY infra/easypanel/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
+# Update PATH to include local Python packages
+ENV PATH=/root/.local/bin:$PATH
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Expose port
-EXPOSE 8000
+# Expose port (EasyPanel will map this)
+EXPOSE ${PORT}
 
 # Start application
 CMD ["/app/start.sh"]
