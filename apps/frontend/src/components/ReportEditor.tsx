@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Save, Download, RefreshCw, Eye, Edit3, Loader2 } from "lucide-react";
+import { Save, Download, Eye, Edit3, Loader2 } from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import { updateReport, getExportUrl } from "../services/api";
 
@@ -14,7 +14,11 @@ export function ReportEditor() {
   );
 
   useEffect(() => {
-    if (report?.markdown !== undefined) setLocalMd(report.markdown);
+    if (report?.markdown != null) {
+      setLocalMd(report.markdown);
+    } else {
+      setLocalMd("");
+    }
   }, [report?.markdown]);
 
   if (isGenerating) {
@@ -67,9 +71,6 @@ export function ReportEditor() {
     }
   }
 
-  const base = darkMode
-    ? "bg-gray-900 text-gray-100"
-    : "bg-white text-gray-900";
   const border = darkMode ? "border-gray-700" : "border-gray-200";
 
   return (

@@ -15,11 +15,11 @@ redis==5.0.1
 hiredis==2.3.2
 
 # LangChain & LangGraph
-langchain==0.1.4
-langchain-openai==0.0.5
-langchain-community==0.0.20
-langgraph==0.0.20
-langsmith==0.0.83
+langchain==0.3.28
+langchain-openai==0.3.35
+langchain-community==0.3.28
+langgraph==0.2.73
+langsmith==0.1.147
 
 # Document Parsing
 PyMuPDF==1.23.8
@@ -33,12 +33,15 @@ markdown==3.5.1
 # Export
 weasyprint==60.2
 pypandoc==1.12
+plotly==5.18.0
+kaleido==0.2.1
 
 # Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 bleach==6.1.0
+llm-guard==0.3.14
 
 # Observability
 opentelemetry-api==1.22.0

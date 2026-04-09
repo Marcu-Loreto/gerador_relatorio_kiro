@@ -31,9 +31,15 @@ export function ReportHistory() {
     refetch();
   }
 
-  function handleOpen(report: any) {
-    setReport(report);
-    setActiveTab("preview");
+  async function handleOpen(report: any) {
+    try {
+      const { getReport } = await import("../services/api");
+      const full = await getReport(report.report_id);
+      setReport({ ...full, markdown: full.markdown ?? "" });
+    } catch {
+      setReport({ ...report, markdown: report.markdown ?? "" });
+    }
+    setActiveTab("editor");
   }
 
   return (

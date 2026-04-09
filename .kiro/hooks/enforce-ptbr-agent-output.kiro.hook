@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Forçar Português do Brasil",
+  "description": "Lembra o agente de sempre usar português do Brasil em todas as respostas, mensagens de ação e conteúdo gerado",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "IMPORTANTE: Todo conteúdo gerado, mensagens de ação, descrições de etapas, resumos e qualquer texto voltado ao usuário DEVE estar em Português do Brasil (pt-BR). Isso inclui mensagens de status, logs visíveis ao usuário, títulos de seções e qualquer saída dos agentes. Código-fonte, nomes de variáveis e comentários técnicos podem permanecer em inglês."
+  }
+}

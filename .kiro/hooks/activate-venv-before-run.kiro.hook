@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Ativar Ambiente Virtual",
+  "description": "Antes de rodar qualquer comando shell, ativa o ambiente virtual .venv/bin/activate automaticamente",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "shell"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Antes de executar qualquer comando shell relacionado à aplicação Python (como rodar scripts, testes, ou o servidor), certifique-se de prefixar o comando com `source .venv/bin/activate &&` para ativar o ambiente virtual. Por exemplo: `source .venv/bin/activate && python script.py`"
+  }
+}

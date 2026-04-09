@@ -269,9 +269,43 @@ async def export_md(report_id: str):
 
 @router.get("/{report_id}/export/pdf")
 async def export_pdf(report_id: str):
-    return {"status": "em_desenvolvimento", "report_id": report_id}
+    """Export report as PDF."""
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+    md_path = row.get("md_path", "")
+    if not md_path or not __import__("os").path.exists(md_path):
+        raise HTTPException(status_code=404, detail="Arquivo markdown não encontrado")
+    try:
+        from src.exporters.pdf_exporter import md_to_pdf
+        pdf_path = md_to_pdf(md_path)
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=__import__("os").path.basename(pdf_path),
+        )
+    except Exception as e:
+        logger.error("pdf_export_failed", report_id=report_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar PDF: {str(e)}")
 
 
 @router.get("/{report_id}/export/docx")
 async def export_docx(report_id: str):
-    return {"status": "em_desenvolvimento", "report_id": report_id}
+    """Export report as DOCX using python-docx."""
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+    md_path = row.get("md_path", "")
+    if not md_path or not __import__("os").path.exists(md_path):
+        raise HTTPException(status_code=404, detail="Arquivo markdown não encontrado")
+    try:
+        from src.exporters.docx_exporter import md_to_docx
+        docx_path = md_to_docx(md_path)
+        return FileResponse(
+            docx_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=__import__("os").path.basename(docx_path),
+        )
+    except Exception as e:
+        logger.error("docx_export_failed", report_id=report_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar DOCX: {str(e)}")

@@ -62,3 +62,7 @@ reports/*.db
 reports/**/*.md
 uploads/
 exports/
+
+# Test artifacts
+resultado_relatorio.*
+test_generate_report.py

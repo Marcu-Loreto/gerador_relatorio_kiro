@@ -210,30 +210,8 @@ class ModelSelector:
         
         # MiniMax models
         if model_name.startswith("minimax"):
-            if not self.settings.minimax_api_key:
-                logger.warning(
-                    "minimax_key_missing",
-                    message="MiniMax API key not configured, falling back to OpenAI",
-                )
-                model_name = self.settings.complex_model
-            else:
-                # MiniMax integration
-                # Note: You'll need to add minimax SDK to requirements
-                try:
-                    from langchain_community.chat_models import ChatMiniMax
-                    
-                    return ChatMiniMax(
-                        model=model_name,
-                        minimax_api_key=self.settings.minimax_api_key,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
-                except ImportError:
-                    logger.warning(
-                        "minimax_not_available",
-                        message="MiniMax SDK not installed, falling back to OpenAI",
-                    )
-                    model_name = self.settings.complex_model
+            logger.warning("minimax_not_supported", message="MiniMax não suportado, usando OpenAI")
+            model_name = self.settings.complex_model
         
         # OpenAI models (default)
         return ChatOpenAI(
