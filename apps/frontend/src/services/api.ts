@@ -16,12 +16,20 @@ const api = axios.create({
 
 // ── Documents ──────────────────────────────────────────────────────────────
 
-export async function uploadDocument(file: File): Promise<Document> {
+export async function uploadDocument(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<Document> {
   const form = new FormData();
   form.append("file", file);
 
   const { data } = await api.post<Document>("/documents/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
+    onUploadProgress: (e) => {
+      if (onProgress && e.total) {
+        onProgress(Math.round((e.loaded * 100) / e.total));
+      }
+    },
   });
 
   return data;

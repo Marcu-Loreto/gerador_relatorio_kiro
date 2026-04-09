@@ -27,6 +27,7 @@ interface UploadedFile {
   doc: Document | null;
   status: "uploading" | "analyzing" | "ready" | "error";
   error?: string;
+  uploadProgress?: number;
 }
 
 export function Sidebar() {
@@ -56,10 +57,12 @@ export function Sidebar() {
 
   async function processFile(file: File, idx: number) {
     // Upload
-    updateFile(idx, { status: "uploading" });
+    updateFile(idx, { status: "uploading", uploadProgress: 0 });
     try {
-      const doc = await uploadDocument(file);
-      updateFile(idx, { doc, status: "analyzing" });
+      const doc = await uploadDocument(file, (percent) => {
+        updateFile(idx, { uploadProgress: percent });
+      });
+      updateFile(idx, { doc, status: "analyzing", uploadProgress: 100 });
 
       // Analyze
       await analyzeDocument(doc.document_id);
@@ -309,13 +312,21 @@ export function Sidebar() {
                     className={`mt-0.5 ${uf.status === "error" ? "text-red-400" : "text-gray-400"}`}
                   >
                     {uf.status === "uploading"
-                      ? "Enviando..."
+                      ? `Enviando... ${uf.uploadProgress ?? 0}%`
                       : uf.status === "analyzing"
                         ? "Analisando..."
                         : uf.status === "ready"
                           ? `✓ Pronto · ${(uf.file.size / 1024).toFixed(0)} KB`
                           : uf.error || "Erro"}
                   </p>
+                  {uf.status === "uploading" && (
+                    <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-200"
+                        style={{ width: `${uf.uploadProgress ?? 0}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {/* Remove */}
                 <button
