@@ -4,7 +4,7 @@
     "start": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,green\" --kill-others-on-fail \"npm run backend\" \"npm run frontend\"",
     "backend": "cross-env PYTHONPATH=apps/backend .venv/Scripts/python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload",
     "frontend": "npm run dev --prefix apps/frontend",
-    "stop": "pkill -f 'uvicorn src.api.main' ; pkill -f 'vite' ; echo 'Serviços encerrados'"
+    "stop": "taskkill /F /IM uvicorn.exe >nul 2>&1 & taskkill /F /IM node.exe /FI \"WINDOWTITLE eq vite\" >nul 2>&1 & echo Servicos encerrados"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

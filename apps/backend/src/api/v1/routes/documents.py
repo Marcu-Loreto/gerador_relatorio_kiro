@@ -1,8 +1,10 @@
 """Document upload and analysis routes."""
+import asyncio
 import os
 import uuid
 from typing import Optional
 
+import aiofiles
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
@@ -54,27 +56,32 @@ async def upload_document(file: UploadFile = File(...)):
             detail=f"File type '{ext}' not allowed. Allowed: {settings.allowed_extensions}",
         )
 
-    # Read file content
-    content = await file.read()
-    file_size = len(content)
-
-    if file_size > settings.max_upload_size_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large ({file_size} bytes). Max: {settings.max_upload_size_bytes}",
-        )
-
-    if file_size == 0:
-        raise HTTPException(status_code=400, detail="File is empty")
-
-    # Save file
+    # Stream file to disk in chunks (avoids loading entire file into memory)
     document_id = str(uuid.uuid4())
     upload_dir = settings.storage_local_path
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, f"{document_id}{ext}")
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    file_size = 0
+    chunk_size = 1024 * 256  # 256 KB chunks
+    async with aiofiles.open(file_path, "wb") as out:
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            file_size += len(chunk)
+            if file_size > settings.max_upload_size_bytes:
+                await out.close()
+                os.remove(file_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Max: {settings.max_upload_size_bytes} bytes",
+                )
+            await out.write(chunk)
+
+    if file_size == 0:
+        os.remove(file_path)
+        raise HTTPException(status_code=400, detail="File is empty")
 
     # Store metadata
     doc_data = {
@@ -88,9 +95,9 @@ async def upload_document(file: UploadFile = File(...)):
     }
     documents_store[document_id] = doc_data
 
-    # Persist to SQLite immediately
+    # Persist to SQLite in a thread to avoid blocking the event loop
     from src.infrastructure.database import save_document
-    save_document(doc_data)
+    await asyncio.to_thread(save_document, doc_data)
 
     logger.info("document_uploaded", document_id=document_id, filename=safe_filename, size=file_size)
 
@@ -115,19 +122,19 @@ async def analyze_document(document_id: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Document file not found on disk")
 
-    # Parse document
+    # Parse document in a thread (CPU-bound, avoids blocking event loop)
     from src.parsers.parser_manager import ParserManager
     from src.security.prompt_injection_detector import PromptInjectionDetector
 
     try:
         parser = ParserManager()
-        result = parser.parse(file_path)
+        result = await asyncio.to_thread(parser.parse, file_path)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    # Security scan
+    # Security scan in a thread
     detector = PromptInjectionDetector()
-    is_suspicious, risk_score, details = detector.detect(result.content)
+    is_suspicious, risk_score, details = await asyncio.to_thread(detector.detect, result.content)
 
     if risk_score >= 0.8:
         logger.warning("document_blocked", document_id=document_id, risk_score=risk_score)
