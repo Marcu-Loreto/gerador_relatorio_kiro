@@ -11,7 +11,7 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY apps/frontend/package*.json ./
 
-# Install dependencies INCLUDING devDependencies needed for build
+# Install dependencies including devDependencies required for build
 RUN npm ci
 
 # Copy frontend source
@@ -43,7 +43,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # ============================================
 # Stage 3: Production Runtime
 # ============================================
-FROM python:3.11-slim
+FROM python:3.11-slim AS runtime
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -92,7 +92,7 @@ RUN chmod +x /app/start.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Expose port
+# Expose port used by EasyPanel
 EXPOSE 8000
 
 # Start application

@@ -6,8 +6,11 @@ import type {
   ReportType,
 } from "../types";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1",
+  baseURL: API_BASE_URL,
   timeout: 300_000,
 });
 
@@ -16,9 +19,11 @@ const api = axios.create({
 export async function uploadDocument(file: File): Promise<Document> {
   const form = new FormData();
   form.append("file", file);
+
   const { data } = await api.post<Document>("/documents/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+
   return data;
 }
 
@@ -82,7 +87,5 @@ export function getExportUrl(
   reportId: string,
   format: "md" | "pdf" | "docx",
 ): string {
-  const base =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
-  return `${base}/reports/${reportId}/export/${format}`;
+  return `${API_BASE_URL}/reports/${reportId}/export/${format}`;
 }

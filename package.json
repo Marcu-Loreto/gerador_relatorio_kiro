@@ -2,11 +2,12 @@
   "private": true,
   "scripts": {
     "start": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,green\" --kill-others-on-fail \"npm run backend\" \"npm run frontend\"",
-    "backend": "set PYTHONPATH=apps/backend&& .venv\\Scripts\\python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload",
+    "backend": "cross-env PYTHONPATH=apps/backend .venv/Scripts/python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload",
     "frontend": "npm run dev --prefix apps/frontend",
     "stop": "pkill -f 'uvicorn src.api.main' ; pkill -f 'vite' ; echo 'Serviços encerrados'"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "cross-env": "^10.1.0"
   }
 }
