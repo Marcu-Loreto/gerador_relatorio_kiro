@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production-min32chars"
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 1440
-    allowed_origins_str: str = "http://localhost:5173,http://localhost:3000,http://localhost:8000"
+    allowed_origins_str: str = "http://localhost:5173,http://localhost:3000,http://localhost:8000,*"
 
     @property
     def allowed_origins(self) -> List[str]:

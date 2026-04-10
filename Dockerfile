@@ -17,7 +17,8 @@ RUN npm ci
 # Copy frontend source
 COPY apps/frontend/ ./
 
-# Build frontend for production
+# Build frontend for production (API is served from same origin via nginx)
+ENV VITE_API_BASE_URL=/api/v1
 RUN npm run build
 
 # ============================================
@@ -90,10 +91,10 @@ RUN chmod +x /app/start.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost/health || exit 1
 
-# Expose port used by EasyPanel
-EXPOSE 8000
+# Expose port 80 (nginx serves frontend + proxies API)
+EXPOSE 80
 
 # Start application
 CMD ["/app/start.sh"]
