@@ -29,7 +29,7 @@ router = APIRouter()
 # ── Schemas ────────────────────────────────────────────────────────────────
 
 class GenerateReportRequest(BaseModel):
-    document_id: str
+    document_ids: list[str]
     report_type: ReportType
 
 
@@ -80,40 +80,61 @@ def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
 
 @router.post("/generate", response_model=ReportResponse)
 async def generate_report(request: GenerateReportRequest):
-    """Generate a report from an analyzed document and persist it."""
+    """Generate a report from one or more analyzed documents."""
     from src.api.v1.routes.documents import documents_store
     from src.agents.report_router import get_report_agent
     from src.graphs.state import AppState, AnalysisStatus
     from src.infrastructure.database import save_document
 
-    if request.document_id not in documents_store:
-        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    if not request.document_ids:
+        raise HTTPException(status_code=400, detail="Nenhum documento fornecido")
 
-    doc = documents_store[request.document_id]
-    if doc["status"] != "analyzed":
-        raise HTTPException(status_code=400, detail="Documento precisa ser analisado primeiro")
+    # Validate and collect all documents
+    docs = []
+    for doc_id in request.document_ids:
+        if doc_id not in documents_store:
+            raise HTTPException(status_code=404, detail=f"Documento {doc_id} não encontrado")
+        doc = documents_store[doc_id]
+        if doc["status"] != "analyzed":
+            raise HTTPException(status_code=400, detail=f"Documento '{doc['filename']}' precisa ser analisado primeiro")
+        if not doc.get("analysis"):
+            raise HTTPException(status_code=400, detail=f"Dados de análise não disponíveis para '{doc['filename']}'")
+        docs.append(doc)
 
-    analysis = doc.get("analysis")
-    if not analysis:
-        raise HTTPException(status_code=400, detail="Dados de análise não disponíveis")
+    # Persist all documents to DB
+    for doc in docs:
+        save_document(doc)
 
-    # Persist document metadata to DB
-    save_document(doc)
+    # Consolidate content from all documents
+    consolidated_parts = []
+    total_words = 0
+    primary_doc = docs[0]
+    all_filenames = [d["filename"] for d in docs]
+
+    for i, doc in enumerate(docs, start=1):
+        analysis = doc["analysis"]
+        word_count = analysis.get("word_count", 0)
+        total_words += word_count
+        header = f"### Documento {i}: {doc['filename']} ({word_count} palavras)"
+        consolidated_parts.append(f"{header}\n\n{analysis['content']}")
+
+    consolidated_content = "\n\n---\n\n".join(consolidated_parts)
+    consolidated_name = " + ".join(all_filenames) if len(docs) > 1 else primary_doc["filename"]
 
     report_id = str(uuid.uuid4())
 
     state: AppState = {
         "request_id": report_id,
         "user_id": "demo_user",
-        "document_id": request.document_id,
-        "document_name": doc["filename"],
-        "document_type": doc["file_type"],
-        "original_file_path": doc["file_path"],
-        "normalized_content": analysis["content"],
+        "document_id": primary_doc["document_id"],
+        "document_name": consolidated_name,
+        "document_type": primary_doc["file_type"],
+        "original_file_path": primary_doc["file_path"],
+        "normalized_content": consolidated_content,
         "extracted_sections": [],
         "extracted_tables": [],
         "analysis_status": AnalysisStatus.COMPLETED,
-        "analysis_summary": f"Documento com {analysis['word_count']} palavras",
+        "analysis_summary": f"{len(docs)} documento(s) com {total_words} palavras no total",
         "selected_report_type": request.report_type,
         "generated_report_markdown": "",
         "review_feedback": "",
@@ -137,7 +158,7 @@ async def generate_report(request: GenerateReportRequest):
     # Save file to disk under reports/
     md_path = save_report_file(
         report_id=report_id,
-        document_name=doc["filename"],
+        document_name=consolidated_name,
         report_type=request.report_type.value,
         markdown=markdown,
     )
@@ -147,8 +168,8 @@ async def generate_report(request: GenerateReportRequest):
     now = datetime.utcnow().isoformat()
     record = {
         "report_id": report_id,
-        "document_id": request.document_id,
-        "document_name": doc["filename"],
+        "document_id": primary_doc["document_id"],
+        "document_name": consolidated_name,
         "report_type": request.report_type.value,
         "status": "generated",
         "quality_score": None,

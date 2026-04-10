@@ -54,11 +54,11 @@ export async function getDocument(documentId: string): Promise<Document> {
 // ── Reports ────────────────────────────────────────────────────────────────
 
 export async function generateReport(
-  documentId: string,
+  documentIds: string[],
   reportType: ReportType,
 ): Promise<Report> {
   const { data } = await api.post<Report>("/reports/generate", {
-    document_id: documentId,
+    document_ids: documentIds,
     report_type: reportType,
   });
   return data;

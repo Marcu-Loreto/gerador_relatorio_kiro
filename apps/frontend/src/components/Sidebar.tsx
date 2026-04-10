@@ -134,9 +134,8 @@ export function Sidebar() {
     setIsGenerating(true);
     setActiveTab("timeline");
 
-    // Usar o primeiro arquivo como documento principal
-    // (em produção, consolidar múltiplos arquivos)
-    const primaryDoc = readyFiles[0].doc!;
+    // Usar TODOS os arquivos prontos para gerar o relatório consolidado
+    const allDocIds = readyFiles.map((f) => f.doc!.document_id);
 
     addTimelineStep({
       id: "generate",
@@ -147,8 +146,8 @@ export function Sidebar() {
     if (readyFiles.length > 1) {
       addTimelineStep({
         id: "multi",
-        label: `${readyFiles.length} arquivos carregados`,
-        status: "done",
+        label: `Consolidando ${readyFiles.length} arquivos`,
+        status: "running",
         timestamp: new Date().toLocaleTimeString(),
       });
     }
@@ -161,13 +160,19 @@ export function Sidebar() {
 
     try {
       const report = await generateReport(
-        primaryDoc.document_id,
+        allDocIds,
         selectedReportType,
       );
       updateTimelineStep("generate", {
         status: "done",
         message: "Relatório gerado",
       });
+      if (readyFiles.length > 1) {
+        updateTimelineStep("multi", {
+          status: "done",
+          message: `${readyFiles.length} documentos consolidados`,
+        });
+      }
       updateTimelineStep("review", {
         status: "done",
         message: `Score: ${report.quality_score ?? "N/A"}`,
