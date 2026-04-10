@@ -269,9 +269,128 @@ async def export_md(report_id: str):
 
 @router.get("/{report_id}/export/pdf")
 async def export_pdf(report_id: str):
-    return {"status": "em_desenvolvimento", "report_id": report_id}
+    """Export report as PDF."""
+    import asyncio
+    import os
+    import tempfile
+
+    import markdown as md_lib
+    from weasyprint import HTML
+
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+
+    markdown_content = read_report_file(row.get("md_path", ""))
+    if not markdown_content:
+        raise HTTPException(status_code=404, detail="Conteúdo do relatório não encontrado")
+
+    def _generate_pdf() -> str:
+        html_body = md_lib.markdown(
+            markdown_content,
+            extensions=["tables", "fenced_code", "toc", "nl2br"],
+        )
+        full_html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; line-height: 1.6; color: #222; }}
+  h1 {{ color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 8px; }}
+  h2 {{ color: #2b6cb0; }}
+  h3 {{ color: #3182ce; }}
+  table {{ border-collapse: collapse; width: 100%; margin: 16px 0; }}
+  th, td {{ border: 1px solid #ccc; padding: 8px 12px; text-align: left; }}
+  th {{ background: #edf2f7; font-weight: 600; }}
+  code {{ background: #f7fafc; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }}
+  pre {{ background: #f7fafc; padding: 16px; border-radius: 6px; overflow-x: auto; }}
+  blockquote {{ border-left: 4px solid #2b6cb0; margin: 16px 0; padding: 8px 16px; color: #555; }}
+</style>
+</head><body>{html_body}</body></html>"""
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir="exports")
+        HTML(string=full_html).write_pdf(tmp.name)
+        tmp.close()
+        return tmp.name
+
+    pdf_path = await asyncio.to_thread(_generate_pdf)
+    doc_name = row.get("document_name", "relatorio")
+    base_name = os.path.splitext(doc_name)[0]
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{base_name}.pdf",
+    )
 
 
 @router.get("/{report_id}/export/docx")
 async def export_docx(report_id: str):
-    return {"status": "em_desenvolvimento", "report_id": report_id}
+    """Export report as DOCX."""
+    import asyncio
+    import os
+    import re
+    import tempfile
+
+    from docx import Document as DocxDocument
+    from docx.shared import Pt, RGBColor
+
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+
+    markdown_content = read_report_file(row.get("md_path", ""))
+    if not markdown_content:
+        raise HTTPException(status_code=404, detail="Conteúdo do relatório não encontrado")
+
+    def _generate_docx() -> str:
+        doc = DocxDocument()
+
+        style = doc.styles["Normal"]
+        style.font.name = "Calibri"
+        style.font.size = Pt(11)
+
+        for line in markdown_content.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Headings
+            if stripped.startswith("### "):
+                p = doc.add_heading(stripped[4:], level=3)
+            elif stripped.startswith("## "):
+                p = doc.add_heading(stripped[3:], level=2)
+            elif stripped.startswith("# "):
+                p = doc.add_heading(stripped[2:], level=1)
+            elif stripped.startswith("- ") or stripped.startswith("* "):
+                doc.add_paragraph(stripped[2:], style="List Bullet")
+            elif re.match(r"^\d+\.\s", stripped):
+                text = re.sub(r"^\d+\.\s", "", stripped)
+                doc.add_paragraph(text, style="List Number")
+            elif stripped.startswith("> "):
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Pt(36)
+                run = p.add_run(stripped[2:])
+                run.italic = True
+                run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+            elif stripped.startswith("---") or stripped.startswith("***"):
+                doc.add_paragraph("─" * 50)
+            else:
+                # Clean bold/italic markdown
+                text = re.sub(r"\*\*(.+?)\*\*", r"\1", stripped)
+                text = re.sub(r"\*(.+?)\*", r"\1", text)
+                text = re.sub(r"`(.+?)`", r"\1", text)
+                doc.add_paragraph(text)
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir="exports")
+        doc.save(tmp.name)
+        tmp.close()
+        return tmp.name
+
+    docx_path = await asyncio.to_thread(_generate_docx)
+    doc_name = row.get("document_name", "relatorio")
+    base_name = os.path.splitext(doc_name)[0]
+
+    return FileResponse(
+        docx_path,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=f"{base_name}.docx",
+    )
