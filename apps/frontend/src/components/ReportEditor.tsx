@@ -7,15 +7,16 @@ import { updateReport, getExportUrl } from "../services/api";
 export function ReportEditor() {
   const { report, setReport, updateReportMarkdown, darkMode, isGenerating } =
     useAppStore();
-  const [localMd, setLocalMd] = useState(report?.markdown || "");
+  const [localMd, setLocalMd] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [viewMode, setViewMode] = useState<"edit" | "preview" | "split">(
     "split",
   );
 
+  // Sync local markdown state whenever the report changes
   useEffect(() => {
-    if (report?.markdown !== undefined) setLocalMd(report.markdown);
-  }, [report?.markdown]);
+    setLocalMd(report?.markdown ?? "");
+  }, [report]);
 
   if (isGenerating) {
     return (
