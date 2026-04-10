@@ -275,7 +275,7 @@ async def export_pdf(report_id: str):
     import tempfile
 
     import markdown as md_lib
-    from weasyprint import HTML
+    from xhtml2pdf import pisa
 
     row = get_report(report_id)
     if not row:
@@ -293,22 +293,26 @@ async def export_pdf(report_id: str):
         full_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
-  body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; line-height: 1.6; color: #222; }}
-  h1 {{ color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 8px; }}
-  h2 {{ color: #2b6cb0; }}
-  h3 {{ color: #3182ce; }}
-  table {{ border-collapse: collapse; width: 100%; margin: 16px 0; }}
-  th, td {{ border: 1px solid #ccc; padding: 8px 12px; text-align: left; }}
-  th {{ background: #edf2f7; font-weight: 600; }}
-  code {{ background: #f7fafc; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }}
-  pre {{ background: #f7fafc; padding: 16px; border-radius: 6px; overflow-x: auto; }}
-  blockquote {{ border-left: 4px solid #2b6cb0; margin: 16px 0; padding: 8px 16px; color: #555; }}
+  @page {{ size: A4; margin: 2cm; }}
+  body {{ font-family: Helvetica, Arial, sans-serif; font-size: 11px; line-height: 1.6; color: #222; }}
+  h1 {{ color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 6px; font-size: 20px; }}
+  h2 {{ color: #2b6cb0; font-size: 16px; }}
+  h3 {{ color: #3182ce; font-size: 14px; }}
+  table {{ border-collapse: collapse; width: 100%; margin: 12px 0; }}
+  th, td {{ border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 10px; }}
+  th {{ background: #edf2f7; font-weight: bold; }}
+  code {{ background: #f7fafc; padding: 1px 4px; font-size: 10px; }}
+  pre {{ background: #f7fafc; padding: 12px; font-size: 10px; }}
+  blockquote {{ border-left: 3px solid #2b6cb0; margin: 12px 0; padding: 6px 12px; color: #555; }}
 </style>
 </head><body>{html_body}</body></html>"""
 
+        os.makedirs("exports", exist_ok=True)
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir="exports")
-        HTML(string=full_html).write_pdf(tmp.name)
+        pisa_status = pisa.CreatePDF(full_html, dest=tmp, encoding="utf-8")
         tmp.close()
+        if pisa_status.err:
+            raise RuntimeError(f"PDF generation failed with {pisa_status.err} errors")
         return tmp.name
 
     pdf_path = await asyncio.to_thread(_generate_pdf)

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, FileText, Trash2, Download, Eye, Loader2 } from "lucide-react";
-import { listReports, deleteReport, getExportUrl } from "../services/api";
+import { listReports, deleteReport, getReport, getExportUrl } from "../services/api";
 import { useAppStore } from "../store/appStore";
 import { REPORT_TYPE_LABELS, type ReportType } from "../types";
 
@@ -25,15 +25,26 @@ export function ReportHistory() {
   const border = darkMode ? "border-gray-700" : "border-gray-200";
   const rowHover = darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50";
 
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
   async function handleDelete(id: string) {
     if (!confirm("Remover este relatório?")) return;
     await deleteReport(id);
     refetch();
   }
 
-  function handleOpen(report: any) {
-    setReport(report);
-    setActiveTab("preview");
+  async function handleOpen(report: any) {
+    setLoadingId(report.report_id);
+    try {
+      const full = await getReport(report.report_id);
+      setReport(full);
+      setActiveTab("editor");
+    } catch {
+      setReport(report);
+      setActiveTab("editor");
+    } finally {
+      setLoadingId(null);
+    }
   }
 
   return (
@@ -147,10 +158,15 @@ export function ReportHistory() {
                     <div className="flex items-center gap-1 justify-end">
                       <button
                         onClick={() => handleOpen(r)}
+                        disabled={loadingId === r.report_id}
                         title="Abrir"
-                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 transition-colors disabled:opacity-50"
                       >
-                        <Eye className="w-4 h-4" />
+                        {loadingId === r.report_id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                       <a
                         href={getExportUrl(r.report_id, "md")}
