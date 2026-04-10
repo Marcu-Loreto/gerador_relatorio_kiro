@@ -10,17 +10,13 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.3.3",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.14.2",
     "axios": "^1.6.2",
     "lucide-react": "^0.303.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hook-form": "^7.49.2",
     "react-markdown": "^9.0.1",
-    "react-router-dom": "^6.21.0",
-    "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

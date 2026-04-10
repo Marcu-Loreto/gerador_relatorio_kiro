@@ -28,7 +28,7 @@ class PDFParser(BaseParser):
         sections: List[ExtractedSection] = []
         tables: List[ExtractedTable] = []
         
-        # Extract text with PyMuPDF
+        # Extract text with PyMuPDF (fast)
         try:
             doc = fitz.open(file_path)
             page_count = len(doc)
@@ -52,25 +52,29 @@ class PDFParser(BaseParser):
             warnings.append(f"PyMuPDF extraction failed: {str(e)}")
             page_count = 0
         
-        # Extract tables with pdfplumber
-        try:
-            with pdfplumber.open(file_path) as pdf:
-                for page_num, page in enumerate(pdf.pages, start=1):
-                    page_tables = page.extract_tables()
-                    for table_data in page_tables:
-                        if table_data and len(table_data) > 1:
-                            headers = table_data[0]
-                            rows = table_data[1:]
-                            tables.append(
-                                ExtractedTable(
-                                    headers=headers,
-                                    rows=rows,
-                                    page=page_num,
+        # Extract tables with pdfplumber only for small PDFs (< 30 pages)
+        # pdfplumber is slow — skip for large documents
+        if page_count <= 30:
+            try:
+                with pdfplumber.open(file_path) as pdf:
+                    for page_num, page in enumerate(pdf.pages, start=1):
+                        page_tables = page.extract_tables()
+                        for table_data in page_tables:
+                            if table_data and len(table_data) > 1:
+                                headers = table_data[0]
+                                rows = table_data[1:]
+                                tables.append(
+                                    ExtractedTable(
+                                        headers=headers,
+                                        rows=rows,
+                                        page=page_num,
+                                    )
                                 )
-                            )
-        except Exception as e:
-            logger.warning("pdfplumber_table_extraction_failed", error=str(e))
-            warnings.append(f"Table extraction failed: {str(e)}")
+            except Exception as e:
+                logger.warning("pdfplumber_table_extraction_failed", error=str(e))
+                warnings.append(f"Table extraction failed: {str(e)}")
+        else:
+            warnings.append(f"Table extraction skipped for large PDF ({page_count} pages)")
         
         # Combine content
         full_content = "\n\n".join(content_parts)

@@ -40,28 +40,15 @@ class Settings(BaseSettings):
     backend_reload: bool = True
     backend_workers: int = 4
 
-    # Database
-    database_url: str = "sqlite:///./app.db"
-    database_pool_size: int = 20
-    database_max_overflow: int = 10
-
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
-    redis_cache_ttl: int = 3600
-
     # Storage
     storage_type: str = "local"
     storage_local_path: str = "./uploads"
-    s3_bucket: str = ""
-    s3_region: str = ""
-    s3_access_key: str = ""
-    s3_secret_key: str = ""
 
     # Security — use plain strings to avoid pydantic-settings JSON parsing issues
     secret_key: str = "dev-secret-key-change-in-production-min32chars"
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 1440
-    allowed_origins_str: str = "http://localhost:5173,http://localhost:3000,http://localhost:8000,*"
+    allowed_origins_str: str = "http://localhost:5173,http://localhost:3000,http://localhost:8000"
 
     @property
     def allowed_origins(self) -> List[str]:
@@ -93,9 +80,7 @@ class Settings(BaseSettings):
     # Rate Limiting
     rate_limit_per_minute: int = 60
 
-    # Observability
-    otel_enabled: bool = False
-    otel_endpoint: str = "http://localhost:4318"
+    # Logging
     log_level: str = "INFO"
     log_format: str = "json"
 

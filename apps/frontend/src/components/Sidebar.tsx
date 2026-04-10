@@ -25,9 +25,10 @@ const ACCEPTED = ".pdf,.docx,.xlsx,.xls,.csv,.txt,.pptx,.md";
 interface UploadedFile {
   file: File;
   doc: Document | null;
-  status: "uploading" | "analyzing" | "ready" | "error";
+  status: "pending" | "uploading" | "analyzing" | "ready" | "error";
   error?: string;
   uploadProgress?: number;
+  statusMessage?: string;
 }
 
 export function Sidebar() {
@@ -57,20 +58,32 @@ export function Sidebar() {
 
   async function processFile(file: File, idx: number) {
     // Upload
-    updateFile(idx, { status: "uploading", uploadProgress: 0 });
+    updateFile(idx, { status: "uploading", uploadProgress: 0, statusMessage: "Enviando arquivo..." });
     try {
       const doc = await uploadDocument(file, (percent) => {
-        updateFile(idx, { uploadProgress: percent });
+        updateFile(idx, {
+          uploadProgress: percent,
+          statusMessage: percent < 100 ? `Enviando... ${percent}%` : "Upload concluído",
+        });
       });
-      updateFile(idx, { doc, status: "analyzing", uploadProgress: 100 });
+      updateFile(idx, {
+        doc,
+        status: "analyzing",
+        uploadProgress: 100,
+        statusMessage: "Analisando conteúdo...",
+      });
 
       // Analyze
       await analyzeDocument(doc.document_id);
-      updateFile(idx, { status: "ready", doc: { ...doc, status: "analyzed" } });
+      updateFile(idx, {
+        status: "ready",
+        doc: { ...doc, status: "analyzed" },
+        statusMessage: `✓ Pronto · ${(file.size / 1024).toFixed(0)} KB`,
+      });
     } catch (e: any) {
       const msg =
         e?.response?.data?.detail || e?.message || "Falha no processamento";
-      updateFile(idx, { status: "error", error: msg });
+      updateFile(idx, { status: "error", error: msg, statusMessage: msg });
     }
   }
 
@@ -81,7 +94,7 @@ export function Sidebar() {
     clearTimeline();
     setReport(null);
 
-    // Adicionar todos à lista
+    // Adicionar todos à lista imediatamente (dialog fecha na hora)
     const startIdx = uploadedFiles.length;
     const newEntries: UploadedFile[] = arr.map((f) => ({
       file: f,
@@ -90,8 +103,13 @@ export function Sidebar() {
     }));
     setUploadedFiles((prev) => [...prev, ...newEntries]);
 
-    // Processar em paralelo
-    await Promise.all(arr.map((file, i) => processFile(file, startIdx + i)));
+    // Reset input para permitir re-selecionar o mesmo arquivo
+    if (fileRef.current) fileRef.current.value = "";
+
+    // Processar em background (não bloqueia a UI)
+    arr.forEach((file, i) => {
+      processFile(file, startIdx + i);
+    });
   }
 
   function removeFile(idx: number) {
@@ -179,7 +197,7 @@ export function Sidebar() {
 
   const readyCount = uploadedFiles.filter((f) => f.status === "ready").length;
   const busyCount = uploadedFiles.filter(
-    (f) => f.status === "uploading" || f.status === "analyzing",
+    (f) => f.status === "pending" || f.status === "uploading" || f.status === "analyzing",
   ).length;
   const canGenerate = readyCount > 0 && busyCount === 0 && !isGenerating;
 
@@ -297,7 +315,7 @@ export function Sidebar() {
               >
                 {/* Status icon */}
                 <div className="flex-shrink-0 mt-0.5">
-                  {uf.status === "uploading" || uf.status === "analyzing" ? (
+                  {uf.status === "pending" || uf.status === "uploading" || uf.status === "analyzing" ? (
                     <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
                   ) : uf.status === "ready" ? (
                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -311,19 +329,23 @@ export function Sidebar() {
                   <p
                     className={`mt-0.5 ${uf.status === "error" ? "text-red-400" : "text-gray-400"}`}
                   >
-                    {uf.status === "uploading"
+                    {uf.statusMessage || (uf.status === "uploading"
                       ? `Enviando... ${uf.uploadProgress ?? 0}%`
                       : uf.status === "analyzing"
                         ? "Analisando..."
                         : uf.status === "ready"
                           ? `✓ Pronto · ${(uf.file.size / 1024).toFixed(0)} KB`
-                          : uf.error || "Erro"}
+                          : uf.error || "Erro")}
                   </p>
-                  {uf.status === "uploading" && (
+                  {(uf.status === "uploading" || uf.status === "analyzing") && (
                     <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                       <div
-                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-200"
-                        style={{ width: `${uf.uploadProgress ?? 0}%` }}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          uf.status === "analyzing" ? "bg-amber-500 animate-pulse" : "bg-blue-500"
+                        }`}
+                        style={{
+                          width: uf.status === "analyzing" ? "100%" : `${uf.uploadProgress ?? 0}%`,
+                        }}
                       />
                     </div>
                   )}

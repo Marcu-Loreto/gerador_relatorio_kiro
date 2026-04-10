@@ -1,9 +1,10 @@
 """Report generation, persistence and retrieval routes."""
+import os
 import uuid
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.core.logging import get_logger
@@ -122,7 +123,6 @@ async def generate_report(request: GenerateReportRequest):
     }
 
     try:
-        from src.agents.report_router import get_report_agent
         agent = get_report_agent(request.report_type.value)
         state = agent.generate(state)
     except Exception as e:
@@ -258,12 +258,12 @@ async def export_md(report_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="Relatório não encontrado")
     md_path = row.get("md_path", "")
-    if not md_path or not __import__("os").path.exists(md_path):
+    if not md_path or not os.path.exists(md_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado em disco")
     return FileResponse(
         md_path,
         media_type="text/markdown",
-        filename=__import__("os").path.basename(md_path),
+        filename=os.path.basename(md_path),
     )
 
 
@@ -272,7 +272,6 @@ async def export_pdf(report_id: str):
     """Export report as PDF."""
     import asyncio
     import os
-    import tempfile
 
     import markdown as md_lib
     from xhtml2pdf import pisa
@@ -308,14 +307,19 @@ async def export_pdf(report_id: str):
 </head><body>{html_body}</body></html>"""
 
         os.makedirs("exports", exist_ok=True)
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir="exports")
-        pisa_status = pisa.CreatePDF(full_html, dest=tmp, encoding="utf-8")
-        tmp.close()
+        pdf_file = os.path.join("exports", f"{report_id}.pdf")
+        with open(pdf_file, "wb") as f:
+            pisa_status = pisa.CreatePDF(full_html, dest=f, encoding="utf-8")
         if pisa_status.err:
             raise RuntimeError(f"PDF generation failed with {pisa_status.err} errors")
-        return tmp.name
+        return pdf_file
 
-    pdf_path = await asyncio.to_thread(_generate_pdf)
+    try:
+        pdf_path = await asyncio.to_thread(_generate_pdf)
+    except Exception as e:
+        logger.error("pdf_export_failed", error=str(e), report_id=report_id)
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar PDF: {str(e)}")
+
     doc_name = row.get("document_name", "relatorio")
     base_name = os.path.splitext(doc_name)[0]
 
@@ -332,7 +336,6 @@ async def export_docx(report_id: str):
     import asyncio
     import os
     import re
-    import tempfile
 
     from docx import Document as DocxDocument
     from docx.shared import Pt, RGBColor
@@ -384,12 +387,16 @@ async def export_docx(report_id: str):
                 text = re.sub(r"`(.+?)`", r"\1", text)
                 doc.add_paragraph(text)
 
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx", dir="exports")
-        doc.save(tmp.name)
-        tmp.close()
-        return tmp.name
+        os.makedirs("exports", exist_ok=True)
+        docx_file = os.path.join("exports", f"{report_id}.docx")
+        doc.save(docx_file)
+        return docx_file
 
-    docx_path = await asyncio.to_thread(_generate_docx)
+    try:
+        docx_path = await asyncio.to_thread(_generate_docx)
+    except Exception as e:
+        logger.error("docx_export_failed", error=str(e), report_id=report_id)
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar DOCX: {str(e)}")
     doc_name = row.get("document_name", "relatorio")
     base_name = os.path.splitext(doc_name)[0]
 

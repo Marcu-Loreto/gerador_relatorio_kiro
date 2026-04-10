@@ -10,10 +10,16 @@ from pydantic import BaseModel
 
 from src.core.config import get_settings
 from src.core.logging import get_logger
+from src.parsers.parser_manager import ParserManager
 from src.security.input_validator import InputValidator
+from src.security.prompt_injection_detector import PromptInjectionDetector
 
 logger = get_logger(__name__)
 router = APIRouter()
+
+# Singletons — avoid re-instantiation per request
+_parser_manager = ParserManager()
+_injection_detector = PromptInjectionDetector()
 
 # In-memory store for demo (use DB in production)
 documents_store: dict = {}
@@ -123,18 +129,13 @@ async def analyze_document(document_id: str):
         raise HTTPException(status_code=404, detail="Document file not found on disk")
 
     # Parse document in a thread (CPU-bound, avoids blocking event loop)
-    from src.parsers.parser_manager import ParserManager
-    from src.security.prompt_injection_detector import PromptInjectionDetector
-
     try:
-        parser = ParserManager()
-        result = await asyncio.to_thread(parser.parse, file_path)
+        result = await asyncio.to_thread(_parser_manager.parse, file_path)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
     # Security scan in a thread
-    detector = PromptInjectionDetector()
-    is_suspicious, risk_score, details = await asyncio.to_thread(detector.detect, result.content)
+    is_suspicious, risk_score, details = await asyncio.to_thread(_injection_detector.detect, result.content)
 
     if risk_score >= 0.8:
         logger.warning("document_blocked", document_id=document_id, risk_score=risk_score)
