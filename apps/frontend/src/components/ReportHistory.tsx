@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, FileText, Trash2, Download, Eye, Loader2 } from "lucide-react";
-import { listReports, deleteReport, getReport, getExportUrl } from "../services/api";
+import {
+  listReports,
+  deleteReport,
+  getReport,
+  getExportUrl,
+} from "../services/api";
 import { useAppStore } from "../store/appStore";
 import { REPORT_TYPE_LABELS, type ReportType } from "../types";
 
@@ -34,19 +39,6 @@ export function ReportHistory() {
   }
 
   async function handleOpen(report: any) {
-<<<<<<< HEAD
-    setLoadingId(report.report_id);
-    try {
-      const full = await getReport(report.report_id);
-      setReport(full);
-      setActiveTab("editor");
-    } catch {
-      setReport(report);
-      setActiveTab("editor");
-    } finally {
-      setLoadingId(null);
-    }
-=======
     try {
       const { getReport } = await import("../services/api");
       const full = await getReport(report.report_id);
@@ -55,7 +47,6 @@ export function ReportHistory() {
       setReport({ ...report, markdown: report.markdown ?? "" });
     }
     setActiveTab("editor");
->>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
   }
 
   return (

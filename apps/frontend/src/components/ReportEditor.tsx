@@ -15,17 +15,12 @@ export function ReportEditor() {
 
   // Sync local markdown state whenever the report changes
   useEffect(() => {
-<<<<<<< HEAD
-    setLocalMd(report?.markdown ?? "");
-  }, [report]);
-=======
     if (report?.markdown != null) {
       setLocalMd(report.markdown);
     } else {
       setLocalMd("");
     }
   }, [report?.markdown]);
->>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
 
   if (isGenerating) {
     return (
@@ -132,8 +127,7 @@ export function ReportEditor() {
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
-                <Download className="w-3 h-3" />
-                .{fmt.toUpperCase()}
+                <Download className="w-3 h-3" />.{fmt.toUpperCase()}
               </button>
             ))}
           </div>
@@ -149,7 +143,9 @@ export function ReportEditor() {
           >
             <div
               className={`px-3 py-1.5 text-xs font-medium border-b ${border} ${
-                darkMode ? "text-gray-400 bg-gray-800" : "text-gray-500 bg-gray-50"
+                darkMode
+                  ? "text-gray-400 bg-gray-800"
+                  : "text-gray-500 bg-gray-50"
               }`}
             >
               <Edit3 className="w-3.5 h-3.5 inline mr-1" /> Markdown
@@ -161,7 +157,9 @@ export function ReportEditor() {
                 updateReportMarkdown(e.target.value);
               }}
               className={`flex-1 w-full p-4 font-mono text-sm resize-none focus:outline-none ${
-                darkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900"
+                darkMode
+                  ? "bg-gray-900 text-gray-100"
+                  : "bg-white text-gray-900"
               }`}
               placeholder="O relatório aparecerá aqui..."
               spellCheck={false}
@@ -173,7 +171,9 @@ export function ReportEditor() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <div
               className={`px-3 py-1.5 text-xs font-medium border-b ${border} ${
-                darkMode ? "text-gray-400 bg-gray-800" : "text-gray-500 bg-gray-50"
+                darkMode
+                  ? "text-gray-400 bg-gray-800"
+                  : "text-gray-500 bg-gray-50"
               }`}
             >
               <Eye className="w-3.5 h-3.5 inline mr-1" /> Preview
