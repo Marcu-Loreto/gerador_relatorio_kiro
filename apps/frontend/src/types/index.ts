@@ -14,7 +14,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   technical_opinion: "Parecer Técnico",
   scientific_report: "Relato Científico",
   academic_longform: "Documento Acadêmico (Dissertação/Tese)",
-  requirements_test_doc: "Documento de Requisito",
+  requirements_test_doc: "Plano de Testes",
 };
 
 export interface Document {
