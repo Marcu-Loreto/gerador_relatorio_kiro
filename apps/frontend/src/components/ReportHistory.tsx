@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, FileText, Trash2, Download, Eye, Loader2 } from "lucide-react";
+import {
+  Search,
+  FileText,
+  Trash2,
+  Download,
+  Eye,
+  Loader2,
+  TableProperties,
+} from "lucide-react";
 import {
   listReports,
   deleteReport,
@@ -178,6 +186,16 @@ export function ReportHistory() {
                       >
                         <Download className="w-4 h-4" />
                       </a>
+                      {r.csv_path && (
+                        <a
+                          href={getExportUrl(r.report_id, "csv")}
+                          download
+                          title="Baixar casos de teste (.csv)"
+                          className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-colors"
+                        >
+                          <TableProperties className="w-4 h-4" />
+                        </a>
+                      )}
                       <button
                         onClick={() => handleDelete(r.report_id)}
                         title="Remover"

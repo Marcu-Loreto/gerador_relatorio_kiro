@@ -15,6 +15,7 @@ class ReportType(str, Enum):
     TECHNICAL_OPINION = "technical_opinion"
     SCIENTIFIC_REPORT = "scientific_report"
     ACADEMIC_LONGFORM = "academic_longform"
+    REQUIREMENTS_TEST_DOC = "requirements_test_doc"
 
 
 class AnalysisStatus(str, Enum):
@@ -133,6 +134,9 @@ class AppState(TypedDict, total=False):
     # Export
     export_status: str
     export_paths: Dict[str, str]
+
+    # CSV test cases (requirements_test_doc agent only)
+    csv_test_cases_content: str
     
     # UI feedback
     ui_status: str

@@ -41,6 +41,7 @@ class ReportResponse(BaseModel):
     status: str
     quality_score: Optional[float] = None
     md_path: Optional[str] = None
+    csv_path: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     markdown: Optional[str] = None  # populated on demand
@@ -68,6 +69,7 @@ def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
         status=row["status"],
         quality_score=row.get("quality_score"),
         md_path=row.get("md_path"),
+        csv_path=row.get("csv_path"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
@@ -163,6 +165,21 @@ async def generate_report(request: GenerateReportRequest):
         markdown=markdown,
     )
 
+    # Save CSV test cases if generated (requirements_test_doc agent)
+    csv_path = None
+    csv_content = state.get("csv_test_cases_content", "")
+    if csv_content:
+        from src.infrastructure.report_storage import _safe_name
+        from datetime import datetime as _dt
+        month_dir = os.path.join("reports", _dt.utcnow().strftime("%Y-%m"))
+        os.makedirs(month_dir, exist_ok=True)
+        doc_slug = _safe_name(os.path.splitext(consolidated_name)[0])
+        csv_filename = f"{doc_slug}__casos_de_teste__{report_id[:8]}.csv"
+        csv_path = os.path.join(month_dir, csv_filename)
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write(csv_content)
+        logger.info("csv_saved", path=csv_path)
+
     # Persist metadata to SQLite
     from datetime import datetime
     now = datetime.utcnow().isoformat()
@@ -174,6 +191,7 @@ async def generate_report(request: GenerateReportRequest):
         "status": "generated",
         "quality_score": None,
         "md_path": md_path,
+        "csv_path": csv_path,
         "created_at": now,
     }
     save_report(record)
@@ -272,6 +290,22 @@ async def get_markdown(report_id: str):
     return {"markdown": read_report_file(row.get("md_path", ""))}
 
 
+@router.get("/{report_id}/export/csv")
+async def export_csv(report_id: str):
+    """Download CSV test cases file (requirements_test_doc only)."""
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+    csv_path = row.get("csv_path", "")
+    if not csv_path or not os.path.exists(csv_path):
+        raise HTTPException(status_code=404, detail="Arquivo CSV não disponível para este relatório")
+    return FileResponse(
+        csv_path,
+        media_type="text/csv",
+        filename=os.path.basename(csv_path),
+    )
+
+
 @router.get("/{report_id}/export/md")
 async def export_md(report_id: str):
     """Download .md file."""
@@ -291,66 +325,6 @@ async def export_md(report_id: str):
 @router.get("/{report_id}/export/pdf")
 async def export_pdf(report_id: str):
     """Export report as PDF."""
-<<<<<<< HEAD
-    import asyncio
-    import os
-
-    import markdown as md_lib
-    from xhtml2pdf import pisa
-
-    row = get_report(report_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Relatório não encontrado")
-
-    markdown_content = read_report_file(row.get("md_path", ""))
-    if not markdown_content:
-        raise HTTPException(status_code=404, detail="Conteúdo do relatório não encontrado")
-
-    def _generate_pdf() -> str:
-        html_body = md_lib.markdown(
-            markdown_content,
-            extensions=["tables", "fenced_code", "toc", "nl2br"],
-        )
-        full_html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-  @page {{ size: A4; margin: 2cm; }}
-  body {{ font-family: Helvetica, Arial, sans-serif; font-size: 11px; line-height: 1.6; color: #222; }}
-  h1 {{ color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 6px; font-size: 20px; }}
-  h2 {{ color: #2b6cb0; font-size: 16px; }}
-  h3 {{ color: #3182ce; font-size: 14px; }}
-  table {{ border-collapse: collapse; width: 100%; margin: 12px 0; }}
-  th, td {{ border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 10px; }}
-  th {{ background: #edf2f7; font-weight: bold; }}
-  code {{ background: #f7fafc; padding: 1px 4px; font-size: 10px; }}
-  pre {{ background: #f7fafc; padding: 12px; font-size: 10px; }}
-  blockquote {{ border-left: 3px solid #2b6cb0; margin: 12px 0; padding: 6px 12px; color: #555; }}
-</style>
-</head><body>{html_body}</body></html>"""
-
-        os.makedirs("exports", exist_ok=True)
-        pdf_file = os.path.join("exports", f"{report_id}.pdf")
-        with open(pdf_file, "wb") as f:
-            pisa_status = pisa.CreatePDF(full_html, dest=f, encoding="utf-8")
-        if pisa_status.err:
-            raise RuntimeError(f"PDF generation failed with {pisa_status.err} errors")
-        return pdf_file
-
-    try:
-        pdf_path = await asyncio.to_thread(_generate_pdf)
-    except Exception as e:
-        logger.error("pdf_export_failed", error=str(e), report_id=report_id)
-        raise HTTPException(status_code=500, detail=f"Falha ao gerar PDF: {str(e)}")
-
-    doc_name = row.get("document_name", "relatorio")
-    base_name = os.path.splitext(doc_name)[0]
-
-    return FileResponse(
-        pdf_path,
-        media_type="application/pdf",
-        filename=f"{base_name}.pdf",
-    )
-=======
     row = get_report(report_id)
     if not row:
         raise HTTPException(status_code=404, detail="Relatório não encontrado")
@@ -368,86 +342,10 @@ async def export_pdf(report_id: str):
     except Exception as e:
         logger.error("pdf_export_failed", report_id=report_id, error=str(e))
         raise HTTPException(status_code=500, detail=f"Falha ao gerar PDF: {str(e)}")
->>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
 
 
 @router.get("/{report_id}/export/docx")
 async def export_docx(report_id: str):
-<<<<<<< HEAD
-    """Export report as DOCX."""
-    import asyncio
-    import os
-    import re
-
-    from docx import Document as DocxDocument
-    from docx.shared import Pt, RGBColor
-
-    row = get_report(report_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Relatório não encontrado")
-
-    markdown_content = read_report_file(row.get("md_path", ""))
-    if not markdown_content:
-        raise HTTPException(status_code=404, detail="Conteúdo do relatório não encontrado")
-
-    def _generate_docx() -> str:
-        doc = DocxDocument()
-
-        style = doc.styles["Normal"]
-        style.font.name = "Calibri"
-        style.font.size = Pt(11)
-
-        for line in markdown_content.split("\n"):
-            stripped = line.strip()
-            if not stripped:
-                continue
-
-            # Headings
-            if stripped.startswith("### "):
-                p = doc.add_heading(stripped[4:], level=3)
-            elif stripped.startswith("## "):
-                p = doc.add_heading(stripped[3:], level=2)
-            elif stripped.startswith("# "):
-                p = doc.add_heading(stripped[2:], level=1)
-            elif stripped.startswith("- ") or stripped.startswith("* "):
-                doc.add_paragraph(stripped[2:], style="List Bullet")
-            elif re.match(r"^\d+\.\s", stripped):
-                text = re.sub(r"^\d+\.\s", "", stripped)
-                doc.add_paragraph(text, style="List Number")
-            elif stripped.startswith("> "):
-                p = doc.add_paragraph()
-                p.paragraph_format.left_indent = Pt(36)
-                run = p.add_run(stripped[2:])
-                run.italic = True
-                run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
-            elif stripped.startswith("---") or stripped.startswith("***"):
-                doc.add_paragraph("─" * 50)
-            else:
-                # Clean bold/italic markdown
-                text = re.sub(r"\*\*(.+?)\*\*", r"\1", stripped)
-                text = re.sub(r"\*(.+?)\*", r"\1", text)
-                text = re.sub(r"`(.+?)`", r"\1", text)
-                doc.add_paragraph(text)
-
-        os.makedirs("exports", exist_ok=True)
-        docx_file = os.path.join("exports", f"{report_id}.docx")
-        doc.save(docx_file)
-        return docx_file
-
-    try:
-        docx_path = await asyncio.to_thread(_generate_docx)
-    except Exception as e:
-        logger.error("docx_export_failed", error=str(e), report_id=report_id)
-        raise HTTPException(status_code=500, detail=f"Falha ao gerar DOCX: {str(e)}")
-    doc_name = row.get("document_name", "relatorio")
-    base_name = os.path.splitext(doc_name)[0]
-
-    return FileResponse(
-        docx_path,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        filename=f"{base_name}.docx",
-    )
-=======
     """Export report as DOCX using python-docx."""
     row = get_report(report_id)
     if not row:
@@ -466,4 +364,3 @@ async def export_docx(report_id: str):
     except Exception as e:
         logger.error("docx_export_failed", report_id=report_id, error=str(e))
         raise HTTPException(status_code=500, detail=f"Falha ao gerar DOCX: {str(e)}")
->>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))

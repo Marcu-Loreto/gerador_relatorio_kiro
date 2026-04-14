@@ -93,7 +93,7 @@ export async function deleteReport(reportId: string): Promise<void> {
 
 export function getExportUrl(
   reportId: string,
-  format: "md" | "pdf" | "docx",
+  format: "md" | "pdf" | "docx" | "csv",
 ): string {
   return `${API_BASE_URL}/reports/${reportId}/export/${format}`;
 }

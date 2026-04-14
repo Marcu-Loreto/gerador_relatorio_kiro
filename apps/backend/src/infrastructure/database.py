@@ -52,6 +52,7 @@ def init_db() -> None:
                 status          TEXT NOT NULL DEFAULT 'generated',
                 quality_score   REAL,
                 md_path         TEXT,
+                csv_path        TEXT,
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL,
                 FOREIGN KEY (document_id) REFERENCES documents(id)
@@ -64,6 +65,11 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_reports_created
                 ON reports(created_at DESC);
         """)
+        # Migrate existing DBs that lack csv_path column
+        try:
+            conn.execute("ALTER TABLE reports ADD COLUMN csv_path TEXT")
+        except Exception:
+            pass  # column already exists
 
 
 # ── Documents ──────────────────────────────────────────────────────────────
@@ -93,9 +99,9 @@ def save_report(report: dict) -> None:
         conn.execute("""
             INSERT OR REPLACE INTO reports
                 (id, document_id, document_name, report_type, status,
-                 quality_score, md_path, created_at, updated_at)
+                 quality_score, md_path, csv_path, created_at, updated_at)
             VALUES (:id, :document_id, :document_name, :report_type, :status,
-                    :quality_score, :md_path, :created_at, :updated_at)
+                    :quality_score, :md_path, :csv_path, :created_at, :updated_at)
         """, {
             "id": report["report_id"],
             "document_id": report["document_id"],
@@ -104,6 +110,7 @@ def save_report(report: dict) -> None:
             "status": report.get("status", "generated"),
             "quality_score": report.get("quality_score"),
             "md_path": report.get("md_path", ""),
+            "csv_path": report.get("csv_path"),
             "created_at": report.get("created_at", now),
             "updated_at": now,
         })

@@ -207,12 +207,26 @@ class ModelSelector:
         max_tokens: int,
     ) -> BaseChatModel:
         """Create LLM instance based on model name."""
-        
-        # MiniMax models
-        if model_name.startswith("minimax"):
-            logger.warning("minimax_not_supported", message="MiniMax não suportado, usando OpenAI")
-            model_name = self.settings.complex_model
-        
+
+        # MiniMax models — use OpenAI-compatible endpoint
+        if model_name.startswith("minimax") or model_name.startswith("MiniMax"):
+            minimax_key = self.settings.minimax_api_key
+            if not minimax_key:
+                logger.warning(
+                    "minimax_key_missing",
+                    message="MINIMAX_API_KEY não configurado, usando OpenAI como fallback",
+                )
+                model_name = self.settings.complex_model
+            else:
+                logger.info("using_minimax", model=model_name)
+                return ChatOpenAI(
+                    model=model_name,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    api_key=minimax_key,
+                    base_url="https://api.minimax.io/v1",
+                )
+
         # OpenAI models (default)
         return ChatOpenAI(
             model=model_name,

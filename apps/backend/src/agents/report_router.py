@@ -13,21 +13,24 @@ def get_report_agent(report_type: str):
     from src.agents.technical_opinion import TechnicalOpinionAgent
     from src.agents.scientific_report import ScientificReportAgent
     from src.agents.academic_longform import AcademicLongformAgent
+    from src.agents.requirements_test_doc import RequirementsTestDocAgent
 
     agents = {
-        ReportType.TECHNICAL_REPORT:   TechnicalReportAgent,
-        ReportType.ANALYTICAL_SUMMARY: AnalyticalSummaryAgent,
-        ReportType.FINEP_REPORT:       FinepReportAgent,
-        ReportType.TECHNICAL_OPINION:  TechnicalOpinionAgent,
-        ReportType.SCIENTIFIC_REPORT:  ScientificReportAgent,
-        ReportType.ACADEMIC_LONGFORM:  AcademicLongformAgent,
+        ReportType.TECHNICAL_REPORT:      TechnicalReportAgent,
+        ReportType.ANALYTICAL_SUMMARY:    AnalyticalSummaryAgent,
+        ReportType.FINEP_REPORT:          FinepReportAgent,
+        ReportType.TECHNICAL_OPINION:     TechnicalOpinionAgent,
+        ReportType.SCIENTIFIC_REPORT:     ScientificReportAgent,
+        ReportType.ACADEMIC_LONGFORM:     AcademicLongformAgent,
+        ReportType.REQUIREMENTS_TEST_DOC: RequirementsTestDocAgent,
         # string fallbacks
-        "technical_report":   TechnicalReportAgent,
-        "analytical_summary": AnalyticalSummaryAgent,
-        "finep_report":       FinepReportAgent,
-        "technical_opinion":  TechnicalOpinionAgent,
-        "scientific_report":  ScientificReportAgent,
-        "academic_longform":  AcademicLongformAgent,
+        "technical_report":      TechnicalReportAgent,
+        "analytical_summary":    AnalyticalSummaryAgent,
+        "finep_report":          FinepReportAgent,
+        "technical_opinion":     TechnicalOpinionAgent,
+        "scientific_report":     ScientificReportAgent,
+        "academic_longform":     AcademicLongformAgent,
+        "requirements_test_doc": RequirementsTestDocAgent,
     }
 
     agent_class = agents.get(report_type, TechnicalReportAgent)
