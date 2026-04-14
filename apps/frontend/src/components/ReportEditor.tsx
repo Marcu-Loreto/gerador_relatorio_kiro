@@ -15,8 +15,17 @@ export function ReportEditor() {
 
   // Sync local markdown state whenever the report changes
   useEffect(() => {
+<<<<<<< HEAD
     setLocalMd(report?.markdown ?? "");
   }, [report]);
+=======
+    if (report?.markdown != null) {
+      setLocalMd(report.markdown);
+    } else {
+      setLocalMd("");
+    }
+  }, [report?.markdown]);
+>>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
 
   if (isGenerating) {
     return (

@@ -34,6 +34,7 @@ export function ReportHistory() {
   }
 
   async function handleOpen(report: any) {
+<<<<<<< HEAD
     setLoadingId(report.report_id);
     try {
       const full = await getReport(report.report_id);
@@ -45,6 +46,16 @@ export function ReportHistory() {
     } finally {
       setLoadingId(null);
     }
+=======
+    try {
+      const { getReport } = await import("../services/api");
+      const full = await getReport(report.report_id);
+      setReport({ ...full, markdown: full.markdown ?? "" });
+    } catch {
+      setReport({ ...report, markdown: report.markdown ?? "" });
+    }
+    setActiveTab("editor");
+>>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
   }
 
   return (

@@ -10,7 +10,11 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 const api = axios.create({
+<<<<<<< HEAD
   baseURL: API_BASE_URL,
+=======
+  baseURL: "/api/v1",
+>>>>>>> f6b254a (v1.2.1 - Fix: integração de gráficos e tabelas nos relatórios (MD, PDF, DOCX))
   timeout: 300_000,
 });
 
