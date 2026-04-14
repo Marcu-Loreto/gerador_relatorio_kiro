@@ -62,3 +62,8 @@ reports/*.db
 reports/**/*.md
 uploads/
 exports/
+
+# Generated reports and exports
+reports/
+exports/
+uploads/
