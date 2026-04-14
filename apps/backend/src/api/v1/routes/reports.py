@@ -40,6 +40,7 @@ class ReportResponse(BaseModel):
     status: str
     quality_score: Optional[float] = None
     md_path: Optional[str] = None
+    csv_path: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     markdown: Optional[str] = None  # populated on demand
@@ -59,6 +60,10 @@ class ReportListResponse(BaseModel):
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
+    from src.infrastructure.report_storage import get_csv_path
+    import os
+    md_path = row.get("md_path", "")
+    csv_path = get_csv_path(md_path) if md_path else ""
     resp = ReportResponse(
         report_id=row["id"],
         document_id=row["document_id"],
@@ -66,12 +71,13 @@ def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
         report_type=row["report_type"],
         status=row["status"],
         quality_score=row.get("quality_score"),
-        md_path=row.get("md_path"),
+        md_path=md_path,
+        csv_path=csv_path if os.path.exists(csv_path) else None,
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
     if include_markdown:
-        resp.markdown = read_report_file(row.get("md_path", ""))
+        resp.markdown = read_report_file(md_path)
     return resp
 
 
@@ -141,6 +147,14 @@ async def generate_report(request: GenerateReportRequest):
         report_type=request.report_type.value,
         markdown=markdown,
     )
+
+    # Save CSV if agent produced one (requirements_analysis)
+    csv_path = ""
+    csv_content = state.get("requirements_csv", "")
+    if csv_content:
+        from src.infrastructure.report_storage import save_csv_file
+        csv_path = save_csv_file(md_path, csv_content)
+        logger.info("requirements_csv_saved", path=csv_path)
 
     # Persist metadata to SQLite
     from datetime import datetime
@@ -267,6 +281,25 @@ async def export_md(report_id: str):
     )
 
 
+@router.get("/{report_id}/export/csv")
+async def export_csv(report_id: str):
+    """Download CSV with test cases / homologation criteria (requirements_analysis only)."""
+    import os
+    from src.infrastructure.report_storage import get_csv_path
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+    md_path = row.get("md_path", "")
+    csv_path = get_csv_path(md_path)
+    if not csv_path or not os.path.exists(csv_path):
+        raise HTTPException(status_code=404, detail="Arquivo CSV não disponível para este relatório")
+    return FileResponse(
+        csv_path,
+        media_type="text/csv",
+        filename=os.path.basename(csv_path),
+    )
+
+
 @router.get("/{report_id}/export/pdf")
 async def export_pdf(report_id: str):
     """Export report as PDF."""
@@ -291,21 +324,4 @@ async def export_pdf(report_id: str):
 
 @router.get("/{report_id}/export/docx")
 async def export_docx(report_id: str):
-    """Export report as DOCX using python-docx."""
-    row = get_report(report_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Relatório não encontrado")
-    md_path = row.get("md_path", "")
-    if not md_path or not __import__("os").path.exists(md_path):
-        raise HTTPException(status_code=404, detail="Arquivo markdown não encontrado")
-    try:
-        from src.exporters.docx_exporter import md_to_docx
-        docx_path = md_to_docx(md_path)
-        return FileResponse(
-            docx_path,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            filename=__import__("os").path.basename(docx_path),
-        )
-    except Exception as e:
-        logger.error("docx_export_failed", report_id=report_id, error=str(e))
-        raise HTTPException(status_code=500, detail=f"Falha ao gerar DOCX: {str(e)}")
+    raise HTTPException(status_code=410, detail="Exportação DOCX removida. Use PDF ou Markdown.")

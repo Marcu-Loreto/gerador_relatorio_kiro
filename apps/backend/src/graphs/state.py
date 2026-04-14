@@ -15,6 +15,7 @@ class ReportType(str, Enum):
     TECHNICAL_OPINION = "technical_opinion"
     SCIENTIFIC_REPORT = "scientific_report"
     ACADEMIC_LONGFORM = "academic_longform"
+    REQUIREMENTS_ANALYSIS = "requirements_analysis"
 
 
 class AnalysisStatus(str, Enum):

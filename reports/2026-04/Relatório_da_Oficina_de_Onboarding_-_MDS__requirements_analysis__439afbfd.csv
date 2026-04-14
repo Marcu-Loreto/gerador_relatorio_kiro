@@ -1,0 +1,23 @@
+﻿Seção,ID,Critério de Sucesso,Descrição Prática,Evidência no Documento,Indicador de Aceite Sugerido,Prioridade,Critério Mínimo Aceitável,Métrica Objetiva,Faixa Mínima Aceitável,Meta Recomendada,Risco Mitigado,Observação Prática,Afirmação,Tipo de origem,Evidência ou justificativa,Necessita validação humana?
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,1,Aderência à fonte oficial,Respostas devem estar alinhadas com as fontes de verdade oficiais.,"FAQs institucionais, cartilhas, sites oficiais",95% de aderência factual,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,2,Clareza e objetividade,Respostas devem ser curtas e em linguagem simples.,Respostas curtas e objetivas,90% de aprovação em testes de clareza,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,3,Adequação da linguagem ao público,"Uso de linguagem acessível e personalizada, incluindo analogias simples.",Linguagem simples e personalizada,85% de aprovação em testes de linguagem,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,4,Cobertura temática mínima,Cobrir temas essenciais como Cadastro Único e regras do Bolsa Família.,Informações essenciais no dia 1,100% de cobertura dos temas críticos,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,5,Redução da desinformação,Capacidade de identificar e corrigir fake news.,Combate a fake news,90% de eficácia em testes de desinformação,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,6,Experiência conversacional,Mensagens de erro humanizadas e encerramento acolhedor.,Mensagens humanizadas e acolhedoras,85% de aprovação em testes de UX,Média,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,7,Acessibilidade e inclusão,Respeitar necessidades de usuários com baixa escolaridade e familiaridade tecnológica.,Público com baixa escolaridade,90% de aprovação em testes de acessibilidade,Alta,,,,,,,,,,
+TABELA 1 — CRITÉRIOS DE SUCESSO DO CHATBOT,8,Encaminhamento correto para canais oficiais,Direcionar usuários para fontes oficiais quando necessário.,Direcionamento para fontes oficiais,95% de precisão em encaminhamentos,Alta,,,,,,,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,1,,,,,,Segurança da aplicação e do modelo,Testes de segurança realizados,100% de testes críticos aprovados,100%,Vazamento de dados,Implementar testes regulares de segurança,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,2,,,,,,Conformidade com privacidade,Conformidade com LGPD,100% de conformidade,100%,Violação de privacidade,Revisão periódica das políticas de privacidade,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,3,,,,,,Acurácia factual / aderência à base,Percentual de aderência factual,95%,98%,Desinformação,Revisão contínua das bases de conhecimento,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,4,,,,,,Taxa de alucinação,Percentual máximo de alucinação,5%,2%,Informação incorreta,Monitoramento constante das respostas geradas,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,5,,,,,,Robustez operacional,Disponibilidade do sistema,99%,99.9%,Interrupção de serviço,Implementação de redundâncias e failover,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,6,,,,,,Monitoramento e observabilidade,Presença de mecanismos de monitoramento,100%,100%,Falhas não detectadas,Uso de ferramentas de monitoramento em tempo real,,,,
+TABELA 2 — CRITÉRIOS MÍNIMOS ACEITÁVEIS PARA SOLUÇÃO DE IA GENERATIVA,7,,,,,,Transparência e revisão humana,Percentual de respostas revisadas,10%,15%,Falta de controle humano,Revisão periódica das respostas mais críticas,,,,
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,O chatbot deve aderir às fontes oficiais.,Explícita,"FAQs institucionais, cartilhas, sites oficiais",Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,As respostas devem ser claras e objetivas.,Explícita,Respostas curtas e objetivas,Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,A linguagem deve ser acessível e personalizada.,Explícita,Linguagem simples e personalizada,Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,O chatbot deve cobrir temas essenciais no dia 1.,Explícita,Informações essenciais no dia 1,Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,O chatbot deve reduzir a desinformação.,Explícita,Combate a fake news,Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,Mensagens de erro devem ser humanizadas.,Explícita,Mensagens humanizadas e acolhedoras,Não
+CHECKLIST DE VERIFICAÇÃO,,,,,,,,,,,,,O chatbot deve encaminhar corretamente para canais oficiais.,Explícita,Direcionamento para fontes oficiais,Não

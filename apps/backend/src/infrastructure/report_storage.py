@@ -36,6 +36,19 @@ def save_report_file(
     return filepath
 
 
+def save_csv_file(md_path: str, csv_content: str) -> str:
+    """Save CSV alongside the markdown file. Returns CSV path."""
+    csv_path = md_path.replace(".md", ".csv")
+    with open(csv_path, "w", encoding="utf-8-sig") as f:  # utf-8-sig for Excel compatibility
+        f.write(csv_content)
+    return csv_path
+
+
+def get_csv_path(md_path: str) -> str:
+    """Return the expected CSV path for a given markdown path."""
+    return md_path.replace(".md", ".csv") if md_path else ""
+
+
 def read_report_file(md_path: str) -> str:
     """Read markdown content from disk."""
     if not md_path or not os.path.exists(md_path):

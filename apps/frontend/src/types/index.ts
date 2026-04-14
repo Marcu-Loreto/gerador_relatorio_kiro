@@ -4,7 +4,8 @@ export type ReportType =
   | "finep_report"
   | "technical_opinion"
   | "scientific_report"
-  | "academic_longform";
+  | "academic_longform"
+  | "requirements_analysis";
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   analytical_summary: "Resumo Analítico",
@@ -13,6 +14,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   technical_opinion: "Parecer Técnico",
   scientific_report: "Relato Científico",
   academic_longform: "Documento Acadêmico (Dissertação/Tese)",
+  requirements_analysis: "Análise de Requisitos e Homologação",
 };
 
 export interface Document {
@@ -32,6 +34,7 @@ export interface Report {
   status: string;
   quality_score?: number;
   md_path?: string;
+  csv_path?: string;
   created_at?: string;
   updated_at?: string;
   markdown?: string;

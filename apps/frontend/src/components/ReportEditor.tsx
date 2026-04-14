@@ -117,7 +117,7 @@ export function ReportEditor() {
           </button>
 
           <div className="flex items-center gap-1">
-            {(["md", "pdf", "docx"] as const).map((fmt) => (
+            {(["md", "pdf"] as const).map((fmt) => (
               <button
                 key={fmt}
                 onClick={() => handleDownload(fmt)}

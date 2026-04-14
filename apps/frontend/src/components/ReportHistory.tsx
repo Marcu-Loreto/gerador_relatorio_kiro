@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, FileText, Trash2, Download, Eye, Loader2 } from "lucide-react";
+import {
+  Search,
+  FileText,
+  Trash2,
+  Download,
+  Eye,
+  Loader2,
+  Table,
+} from "lucide-react";
 import { listReports, deleteReport, getExportUrl } from "../services/api";
 import { useAppStore } from "../store/appStore";
 import { REPORT_TYPE_LABELS, type ReportType } from "../types";
@@ -166,6 +174,16 @@ export function ReportHistory() {
                       >
                         <Download className="w-4 h-4" />
                       </a>
+                      {r.csv_path && (
+                        <a
+                          href={`/api/v1/reports/${r.report_id}/export/csv`}
+                          download
+                          title="Baixar casos de teste (.csv)"
+                          className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-colors"
+                        >
+                          <Table className="w-4 h-4" />
+                        </a>
+                      )}
                       <button
                         onClick={() => handleDelete(r.report_id)}
                         title="Remover"
