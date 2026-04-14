@@ -19,7 +19,7 @@ langchain==0.3.28
 langchain-openai==0.3.35
 langchain-community==0.3.28
 langgraph==0.2.73
-langsmith==0.1.147
+langsmith>=0.3.45
 
 # Document Parsing
 PyMuPDF==1.23.8
