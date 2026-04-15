@@ -42,6 +42,7 @@ class ReportResponse(BaseModel):
     quality_score: Optional[float] = None
     md_path: Optional[str] = None
     csv_path: Optional[str] = None
+    xlsx_path: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     markdown: Optional[str] = None  # populated on demand
@@ -70,6 +71,7 @@ def _to_response(row: dict, include_markdown: bool = False) -> ReportResponse:
         quality_score=row.get("quality_score"),
         md_path=row.get("md_path"),
         csv_path=row.get("csv_path"),
+        xlsx_path=row.get("xlsx_path"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
@@ -180,6 +182,9 @@ async def generate_report(request: GenerateReportRequest):
             f.write(csv_content)
         logger.info("csv_saved", path=csv_path)
 
+    # Save XLSX results if generated (test_auditor agent)
+    xlsx_path = state.get("xlsx_results_path") or None
+
     # Persist metadata to SQLite
     from datetime import datetime
     now = datetime.utcnow().isoformat()
@@ -192,6 +197,7 @@ async def generate_report(request: GenerateReportRequest):
         "quality_score": None,
         "md_path": md_path,
         "csv_path": csv_path,
+        "xlsx_path": xlsx_path,
         "created_at": now,
     }
     save_report(record)
@@ -303,6 +309,22 @@ async def export_csv(report_id: str):
         csv_path,
         media_type="text/csv",
         filename=os.path.basename(csv_path),
+    )
+
+
+@router.get("/{report_id}/export/xlsx")
+async def export_xlsx(report_id: str):
+    """Download XLSX results file (test_auditor only)."""
+    row = get_report(report_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Relatório não encontrado")
+    xlsx_path = row.get("xlsx_path", "")
+    if not xlsx_path or not os.path.exists(xlsx_path):
+        raise HTTPException(status_code=404, detail="Arquivo XLSX não disponível para este relatório")
+    return FileResponse(
+        xlsx_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=os.path.basename(xlsx_path),
     )
 
 

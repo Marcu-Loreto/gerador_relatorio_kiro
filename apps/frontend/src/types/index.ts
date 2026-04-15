@@ -5,7 +5,8 @@ export type ReportType =
   | "technical_opinion"
   | "scientific_report"
   | "academic_longform"
-  | "requirements_test_doc";
+  | "requirements_test_doc"
+  | "test_auditor";
 
 export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   analytical_summary: "Resumo Analítico",
@@ -15,6 +16,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   scientific_report: "Relato Científico",
   academic_longform: "Documento Acadêmico (Dissertação/Tese)",
   requirements_test_doc: "Plano de Testes",
+  test_auditor: "Auditor de Testes IA",
 };
 
 export interface Document {
@@ -35,6 +37,7 @@ export interface Report {
   quality_score?: number;
   md_path?: string;
   csv_path?: string;
+  xlsx_path?: string;
   created_at?: string;
   updated_at?: string;
   markdown?: string;

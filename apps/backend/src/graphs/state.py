@@ -16,6 +16,7 @@ class ReportType(str, Enum):
     SCIENTIFIC_REPORT = "scientific_report"
     ACADEMIC_LONGFORM = "academic_longform"
     REQUIREMENTS_TEST_DOC = "requirements_test_doc"
+    TEST_AUDITOR = "test_auditor"
 
 
 class AnalysisStatus(str, Enum):
@@ -137,6 +138,9 @@ class AppState(TypedDict, total=False):
 
     # CSV test cases (requirements_test_doc agent only)
     csv_test_cases_content: str
+
+    # XLSX results path (test_auditor agent only)
+    xlsx_results_path: str
     
     # UI feedback
     ui_status: str

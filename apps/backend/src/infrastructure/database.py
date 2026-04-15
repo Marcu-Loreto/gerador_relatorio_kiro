@@ -53,6 +53,7 @@ def init_db() -> None:
                 quality_score   REAL,
                 md_path         TEXT,
                 csv_path        TEXT,
+                xlsx_path       TEXT,
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL,
                 FOREIGN KEY (document_id) REFERENCES documents(id)
@@ -69,7 +70,11 @@ def init_db() -> None:
         try:
             conn.execute("ALTER TABLE reports ADD COLUMN csv_path TEXT")
         except Exception:
-            pass  # column already exists
+            pass
+        try:
+            conn.execute("ALTER TABLE reports ADD COLUMN xlsx_path TEXT")
+        except Exception:
+            pass
 
 
 # ── Documents ──────────────────────────────────────────────────────────────
@@ -99,9 +104,9 @@ def save_report(report: dict) -> None:
         conn.execute("""
             INSERT OR REPLACE INTO reports
                 (id, document_id, document_name, report_type, status,
-                 quality_score, md_path, csv_path, created_at, updated_at)
+                 quality_score, md_path, csv_path, xlsx_path, created_at, updated_at)
             VALUES (:id, :document_id, :document_name, :report_type, :status,
-                    :quality_score, :md_path, :csv_path, :created_at, :updated_at)
+                    :quality_score, :md_path, :csv_path, :xlsx_path, :created_at, :updated_at)
         """, {
             "id": report["report_id"],
             "document_id": report["document_id"],
@@ -111,6 +116,7 @@ def save_report(report: dict) -> None:
             "quality_score": report.get("quality_score"),
             "md_path": report.get("md_path", ""),
             "csv_path": report.get("csv_path"),
+            "xlsx_path": report.get("xlsx_path"),
             "created_at": report.get("created_at", now),
             "updated_at": now,
         })

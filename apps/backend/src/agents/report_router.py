@@ -14,6 +14,7 @@ def get_report_agent(report_type: str):
     from src.agents.scientific_report import ScientificReportAgent
     from src.agents.academic_longform import AcademicLongformAgent
     from src.agents.requirements_test_doc import RequirementsTestDocAgent
+    from src.agents.test_auditor import TestAuditorAgent
 
     agents = {
         ReportType.TECHNICAL_REPORT:      TechnicalReportAgent,
@@ -23,6 +24,7 @@ def get_report_agent(report_type: str):
         ReportType.SCIENTIFIC_REPORT:     ScientificReportAgent,
         ReportType.ACADEMIC_LONGFORM:     AcademicLongformAgent,
         ReportType.REQUIREMENTS_TEST_DOC: RequirementsTestDocAgent,
+        ReportType.TEST_AUDITOR:          TestAuditorAgent,
         # string fallbacks
         "technical_report":      TechnicalReportAgent,
         "analytical_summary":    AnalyticalSummaryAgent,
@@ -31,6 +33,7 @@ def get_report_agent(report_type: str):
         "scientific_report":     ScientificReportAgent,
         "academic_longform":     AcademicLongformAgent,
         "requirements_test_doc": RequirementsTestDocAgent,
+        "test_auditor":          TestAuditorAgent,
     }
 
     agent_class = agents.get(report_type, TechnicalReportAgent)

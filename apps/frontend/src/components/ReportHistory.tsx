@@ -8,6 +8,7 @@ import {
   Eye,
   Loader2,
   TableProperties,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   listReports,
@@ -194,6 +195,16 @@ export function ReportHistory() {
                           className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-colors"
                         >
                           <TableProperties className="w-4 h-4" />
+                        </a>
+                      )}
+                      {r.xlsx_path && (
+                        <a
+                          href={getExportUrl(r.report_id, "xlsx")}
+                          download
+                          title="Baixar resultados (.xlsx)"
+                          className="p-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 transition-colors"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
                         </a>
                       )}
                       <button
