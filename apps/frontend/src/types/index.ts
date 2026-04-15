@@ -15,9 +15,28 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   technical_opinion: "Parecer Técnico",
   scientific_report: "Relato Científico",
   academic_longform: "Documento Acadêmico (Dissertação/Tese)",
-  requirements_test_doc: "Plano de Testes",
+  requirements_test_doc: "Criar Plano de Testes",
   test_auditor: "Auditor de Testes IA",
 };
+
+export const REPORT_TYPE_CATEGORIES: { label: string; types: ReportType[] }[] =
+  [
+    {
+      label: "📄 Relatórios",
+      types: [
+        "analytical_summary",
+        "technical_report",
+        "finep_report",
+        "technical_opinion",
+        "scientific_report",
+        "academic_longform",
+      ],
+    },
+    {
+      label: "🧪 Qualidade & Testes",
+      types: ["requirements_test_doc", "test_auditor"],
+    },
+  ];
 
 export interface Document {
   document_id: string;

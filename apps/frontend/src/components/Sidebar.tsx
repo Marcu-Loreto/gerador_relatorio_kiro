@@ -18,7 +18,12 @@ import {
   analyzeDocument,
   generateReport,
 } from "../services/api";
-import { REPORT_TYPE_LABELS, type ReportType, type Document } from "../types";
+import {
+  REPORT_TYPE_LABELS,
+  REPORT_TYPE_CATEGORIES,
+  type ReportType,
+  type Document,
+} from "../types";
 
 const ACCEPTED = ".pdf,.docx,.xlsx,.xls,.csv,.txt,.pptx,.md";
 
@@ -58,12 +63,17 @@ export function Sidebar() {
 
   async function processFile(file: File, idx: number) {
     // Upload
-    updateFile(idx, { status: "uploading", uploadProgress: 0, statusMessage: "Enviando arquivo..." });
+    updateFile(idx, {
+      status: "uploading",
+      uploadProgress: 0,
+      statusMessage: "Enviando arquivo...",
+    });
     try {
       const doc = await uploadDocument(file, (percent) => {
         updateFile(idx, {
           uploadProgress: percent,
-          statusMessage: percent < 100 ? `Enviando... ${percent}%` : "Upload concluído",
+          statusMessage:
+            percent < 100 ? `Enviando... ${percent}%` : "Upload concluído",
         });
       });
       updateFile(idx, {
@@ -159,10 +169,7 @@ export function Sidebar() {
     });
 
     try {
-      const report = await generateReport(
-        allDocIds,
-        selectedReportType,
-      );
+      const report = await generateReport(allDocIds, selectedReportType);
       updateTimelineStep("generate", {
         status: "done",
         message: "Relatório gerado",
@@ -202,7 +209,10 @@ export function Sidebar() {
 
   const readyCount = uploadedFiles.filter((f) => f.status === "ready").length;
   const busyCount = uploadedFiles.filter(
-    (f) => f.status === "pending" || f.status === "uploading" || f.status === "analyzing",
+    (f) =>
+      f.status === "pending" ||
+      f.status === "uploading" ||
+      f.status === "analyzing",
   ).length;
   const canGenerate = readyCount > 0 && busyCount === 0 && !isGenerating;
 
@@ -320,7 +330,9 @@ export function Sidebar() {
               >
                 {/* Status icon */}
                 <div className="flex-shrink-0 mt-0.5">
-                  {uf.status === "pending" || uf.status === "uploading" || uf.status === "analyzing" ? (
+                  {uf.status === "pending" ||
+                  uf.status === "uploading" ||
+                  uf.status === "analyzing" ? (
                     <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
                   ) : uf.status === "ready" ? (
                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -334,22 +346,28 @@ export function Sidebar() {
                   <p
                     className={`mt-0.5 ${uf.status === "error" ? "text-red-400" : "text-gray-400"}`}
                   >
-                    {uf.statusMessage || (uf.status === "uploading"
-                      ? `Enviando... ${uf.uploadProgress ?? 0}%`
-                      : uf.status === "analyzing"
-                        ? "Analisando..."
-                        : uf.status === "ready"
-                          ? `✓ Pronto · ${(uf.file.size / 1024).toFixed(0)} KB`
-                          : uf.error || "Erro")}
+                    {uf.statusMessage ||
+                      (uf.status === "uploading"
+                        ? `Enviando... ${uf.uploadProgress ?? 0}%`
+                        : uf.status === "analyzing"
+                          ? "Analisando..."
+                          : uf.status === "ready"
+                            ? `✓ Pronto · ${(uf.file.size / 1024).toFixed(0)} KB`
+                            : uf.error || "Erro")}
                   </p>
                   {(uf.status === "uploading" || uf.status === "analyzing") && (
                     <div className="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                       <div
                         className={`h-1.5 rounded-full transition-all duration-300 ${
-                          uf.status === "analyzing" ? "bg-amber-500 animate-pulse" : "bg-blue-500"
+                          uf.status === "analyzing"
+                            ? "bg-amber-500 animate-pulse"
+                            : "bg-blue-500"
                         }`}
                         style={{
-                          width: uf.status === "analyzing" ? "100%" : `${uf.uploadProgress ?? 0}%`,
+                          width:
+                            uf.status === "analyzing"
+                              ? "100%"
+                              : `${uf.uploadProgress ?? 0}%`,
                         }}
                       />
                     </div>
@@ -384,10 +402,14 @@ export function Sidebar() {
                 ${darkMode ? "bg-gray-800 border-gray-600 text-gray-100" : "bg-white border-gray-300 text-gray-900"}
                 ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {Object.entries(REPORT_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
+              {REPORT_TYPE_CATEGORIES.map((cat) => (
+                <optgroup key={cat.label} label={cat.label}>
+                  {cat.types.map((value) => (
+                    <option key={value} value={value}>
+                      {REPORT_TYPE_LABELS[value]}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
