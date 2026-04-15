@@ -31,7 +31,7 @@ pandas==2.1.4
 markdown==3.5.1
 
 # Export
-weasyprint==60.2
+xhtml2pdf>=0.2.11
 pypandoc==1.12
 plotly==5.18.0
 kaleido==0.2.1
